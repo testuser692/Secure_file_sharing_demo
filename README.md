@@ -5,7 +5,7 @@ This project is a secure peer-to-peer (P2P) messaging and file-sharing system wi
 
 ## Project Structure
 The following is the project structure:
-
+```
 ├── src/
 │   ├── controller/
 │   │   └── users_controller.py
@@ -23,7 +23,7 @@ The following is the project structure:
 ├── app.py
 └── README.md
 
-
+```
 
 ### Key Files and Directories:
 - **app/**: Contains the Flask application files.
@@ -38,19 +38,18 @@ The following is the project structure:
 
 ## Environment Variables
 The following environment variables need to be configured in the `.env` file:
-
+```
 FLASK_APP=app
 FLASK_ENV=development
 SECRET_KEY=your_secret_key
-DATABASE_URL=postgresql://user
-@localhost/dbname
+DATABASE_URL=postgresql://user@localhost/dbname
 FACE_RECOGNITION_MODEL_PATH=path_to_model
 ENCRYPTION_KEY=your_encryption_key
 JWT_SECRET=your_jwt_secret
 SMTP_SERVER=smtp.example.com
 EMAIL_USER=email@example.com
 EMAIL_PASSWORD=your_email_password
-
+```
 
 ### Explanation of Variables:
 - **SECRET_KEY**: Used for Flask session encryption.
@@ -65,12 +64,12 @@ EMAIL_PASSWORD=your_email_password
 ### Prerequisites:
 - Python 3.x
 - PostgreSQL
-- Node.js (for React.js frontend)
+- Flask templates
 
 ### Steps:
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-repo.git
+   git clone https://github.com/testuser692/Secure_file_sharing_demo.git 
    cd your-repo
 
 Install Python dependencies:
