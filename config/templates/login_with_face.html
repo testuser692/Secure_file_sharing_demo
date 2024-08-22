@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" type="text/css" href="static/css/bootstrap.css">
+  <link rel="stylesheet" type="text/css" href="static/css/style.css">
+  <link rel="stylesheet" type="text/css" href="static/css/responsive.css">
+  <link rel="stylesheet" type="text/css" href="static/css/owl.carousel.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+    rel="stylesheet">
+
+
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-8W2PMEX9KX"></script>
+  <title>Login</title>
+</head>
+<body">
+
+  <section class="user-login">
+    <div class="img-user">
+      <img src="static/images/bg.jpeg" alt="">
+    </div>
+    <div class="form-deign">
+      <div class="user-registration">
+        <div class="logo">
+          <h2>Secure Messaging and File
+            Sharing Instructions
+            </h2>
+        </div>
+        <div class="title">
+          <h4>User Login</h4>
+        </div>
+        {% if response %}
+        <div class="alert alert-{{ 'danger' if not response.success else 'success' }} alert-custom" role="alert">
+          {{ response.message }}
+        </div>
+        {% endif %}
+        <form method="POST" action="{{ url_for('users.start') }}">
+
+          <div class="user-details email">
+            <div class="input-box">
+              <label for="email">Email address</label>
+              <input type="email" name="email" placeholder="Email" required>
+            </div>
+
+            <div class="input-box">
+              <label for="password">Password</label>
+              <input type="password" name="password" placeholder="Password" required>
+            </div>
+          </div>
+
+          <div class="row remeber2">
+            <div class="remeber1">
+              <input class="form-check-input" type="checkbox" id="remember-me" />
+              <label class="form-check-label text-dark-blue" for="remember-me">
+                Remember Me
+              </label>
+            </div>
+            <div class="password-tow">
+              <span class="forgot"><a href="{{url_for('users.forgot_password')}}"
+                  class="forgot-pass text-decoration-none">Forgot Password ?</a></span>
+            </div>
+          </div>
+
+          <div class="button">
+            <input type="submit" value="Sign In">
+          </div>
+          <div class="register-text">
+            <h5><a class="back-link" href="{{ url_for('users.login') }}">Login!</a></h5>
+            <h5><a class="back-link" href="{{ url_for('users.user_registration') }}">Register as an User Now!</a></h5>
+             <h5><a class="back-link" href="{{ url_for('users.add')}}">Registration with face Verification!!</a></h5> 
+            </div>
+
+        </form>
+      </div>
+      <!-- <div class="form-bg2">
+  <img src="images/object.png" alt="">
+</div> -->
+    </div>
+
+  </section>
+
+  <script src="static/js/bootstrap.bundle.min.js" type="static/text/javascript"></script>
+  <script src="static/js/jquery.min.js" type="static/text/javascript"></script>
+  <script src="static/js/owl.carousel.js" type="static/text/javascript"></script>
+  <script src="static/js/jquery.validate.min.js" type="static/text/javascript"></script>
+  <script src="static/js/particles.min.js"></script>
+  <script src="static/js/stats.min.js"></script>
+  </body>
+
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Confirmation</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="confirmation-message">
+            {% if response.status == 200 %}
+                <h1>Success!</h1>
+                <p>{{ response.message }}</p>
+                <a href="{{ url_for('users.login') }}" class="btn btn-primary">Go to Login</a>
+            {% elif response.status == 400 %}
+                <h1>Invalid or Expired Link</h1>
+                <p>{{ response.message }}</p>
+                <a href="{{ url_for('users.user_registration') }}" class="btn btn-secondary">Register Again</a>
+            {% elif response.status == 404 %}
+                <h1>User Not Found</h1>
+                <p>{{ response.message }}</p>
+                <a href="{{ url_for('users.user_registration') }}" class="btn btn-secondary">Register</a>
+            {% else %}
+                <h1>Error</h1>
+                <p>{{ response.message }}</p>
+                {% if response.errors %}
+                    <p>Details: {{ response.errors }}</p>
+                {% endif %}
+                <a href="{{ url_for('users.user_registration') }}" class="btn btn-secondary">Register</a>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
