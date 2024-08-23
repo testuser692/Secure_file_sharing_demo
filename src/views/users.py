@@ -420,6 +420,16 @@ def verify_otp():
             return render_template('verify_otp.html', response=response, user_id=user_id), HTTPStatus.INTERNAL_SERVER_ERROR
 
     user_id = request.args.get('user_id')
+    if user_id:
+        # Retrieve the user by user_id
+        user = User.query.get(user_id)
+        if user:
+            # Store the email in the session
+            session['user_email'] = user.email
+        else:
+            flash('User not found.', 'danger')
+            return redirect(url_for('users.login'))
+
     session['user_id'] = user_id
     return render_template('verify_otp.html', user_id=user_id), HTTPStatus.OK
 
@@ -818,6 +828,12 @@ def home():
 @users.route('/encrypt', methods=['GET', 'POST'])
 def encrypt():
     user_id = session.get('user_id')
+    user_email = session.get('user_email')
+    recieved_files = EncryptedFile.query.filter_by(email=user_email).all()
+    print(recieved_files)
+    # Print the filenames
+    for file in recieved_files:
+        print(file.filename)
     files = EncryptedFile.query.filter_by(user_id=user_id).all()
     for file in files:
         size_kb = float(file.file_size)  
@@ -915,12 +931,19 @@ def decrypt():
             return redirect(request.url)
 
         if file:
-            # Retrieve the symmetric key for the given email
-            symmetric_key = SYMMETRIC_KEY_STORE.get(email)
+            # # Retrieve the symmetric key for the given email
+            # symmetric_key = SYMMETRIC_KEY_STORE.get(email)
+            encrypted_file_record = EncryptedFile.query.filter_by(email=email).first()
+
+            if not encrypted_file_record:
+                flash('No encryption key found for the provided email.', 'danger')
+                return redirect(url_for('users.decrypt'))
+
+            symmetric_key = encrypted_file_record.symmetric_key
 
             if not symmetric_key:
                 flash('No encryption key found for the provided email.', 'danger')
-                return redirect(url_for('decrypt'))
+                return redirect(url_for('users.decrypt'))
 
             # Decrypt the file content
             encrypted_content = file.read()

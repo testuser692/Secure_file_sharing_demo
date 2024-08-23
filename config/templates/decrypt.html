@@ -5,7 +5,7 @@
 </head>
 <body>
     <h1>Decrypt File</h1>
-    <form method="POST" action="{{ url_for('decrypt') }}" enctype="multipart/form-data">
+    <form method="POST" action="{{ url_for('users.decrypt') }}" enctype="multipart/form-data">
         <label>Email:</label>
         <input type="email" name="email" required><br>
         <label>Encrypted File:</label>
