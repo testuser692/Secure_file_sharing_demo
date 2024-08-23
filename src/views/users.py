@@ -18,6 +18,10 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import padding
 from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 users = Blueprint('users', __name__)
 
@@ -83,7 +87,7 @@ def user_registration():
                 s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
                 token = s.dumps(email, salt=current_app.config['SECURITY_PASSWORD_SALT'])
                 confirm_url = url_for('users.confirm_email', token=token, _external=True)
-                msg = Message("Email Confirmation Request", sender="testingmn692@gmail.com", recipients=[email])
+                msg = Message("Email Confirmation Request", sender=os.getenv('EMAIL_USER'), recipients=[email])
                 msg.body = f"To confirm your email, click the following link: {confirm_url}\n\nIf you did not make this request, simply ignore this email and no changes will be made."
 
                 try:
@@ -151,7 +155,7 @@ def confirm_email(token):
 
             # Send email with generated username
             try:
-                msg = Message("Account Activated", sender="testingmn692@gmail.com", recipients=[email])
+                msg = Message("Account Activated", sender=os.getenv('EMAIL_USER'), recipients=[email])
                 msg.body = f"Dear {user.first_name},\n\nYour account has been successfully activated! Your username is: {user.username}\n\nThank you for registering with us."
                 mail.send(msg)
 
@@ -204,7 +208,7 @@ def forgot_password():
                 s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
                 token = s.dumps(email, salt=current_app.config['SECURITY_PASSWORD_SALT'])
                 reset_url = url_for('users.reset_password', token=token, _external=True)
-                msg = Message("Password Reset Request", sender="testingmn692@gmail.com", recipients=[email])
+                msg = Message("Password Reset Request", sender=os.getenv('EMAIL_USER'), recipients=[email])
                 msg.body = f"To reset your password, click the following link: {reset_url}\n\nIf you did not make this request, simply ignore this email and no changes will be made."
 
                 try:
