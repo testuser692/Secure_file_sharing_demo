@@ -14,6 +14,14 @@ import pandas as pd
 import joblib
 import csv
 import base64
+import sqlite3
+import mimetypes
+import smtplib
+from email.message import EmailMessage
+from cryptography.fernet import Fernet
+import os
+import io
+
 
 
 load_dotenv()
@@ -380,3 +388,52 @@ if f'BiometricData-{datetoday}.csv' not in os.listdir('BiometricData'):
         f.write('First Name,Last Name,Email,Contact No,Password,Time\n')
 
 
+#===============================================================
+SYMMETRIC_KEY_STORE = {}
+# Generate a symmetric key for AES encryption
+def generate_symmetric_key():
+    key = Fernet.generate_key()
+    return key
+
+# Encrypt the file content using AES
+def encrypt_file(file_content, symmetric_key):
+    fernet = Fernet(symmetric_key)
+    encrypted_file_content = fernet.encrypt(file_content)
+    return encrypted_file_content
+
+# Decrypt the file content using AES
+def decrypt_file(encrypted_file_content, symmetric_key):
+    fernet = Fernet(symmetric_key)
+    decrypted_file_content = fernet.decrypt(encrypted_file_content)
+    return decrypted_file_content
+
+# Send the HTML email with an attachment
+def send_html_email_with_attachment(sender_email, sender_password, receiver_email, subject, body_html, attachment_content, attachment_name):
+    msg = EmailMessage()
+    msg['Subject'] = subject
+    msg['From'] = sender_email
+    msg['To'] = receiver_email
+    msg.set_content("This is a plain text fallback.")
+    msg.add_alternative(body_html, subtype='html')
+
+    mime_type, _ = mimetypes.guess_type(attachment_name)
+    if mime_type is None:
+        mime_type, mime_subtype = 'application', 'octet-stream'
+    else:
+        mime_type, mime_subtype = mime_type.split('/')
+
+    msg.add_attachment(attachment_content, maintype=mime_type, subtype=mime_subtype, filename=attachment_name)
+
+    with smtplib.SMTP('smtp.office365.com', 587) as smtp:
+        smtp.starttls()
+        smtp.login(sender_email, sender_password)
+        smtp.send_message(msg)
+
+        
+def verify_email_in_db(email):
+    user = User.query.filter_by(email=email).first()  # Retrieve the first result if it exists
+    if user:
+        print(f"Email {email} exists in the database.")
+    else:
+        print(f"Email {email} does not exist in the database.")
+    return user is not None  # Return True if the user exists, otherwise False

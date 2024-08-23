@@ -6,10 +6,10 @@ from flask_mail import  Message
 from config import db, bcrypt, mail
 from sqlalchemy.exc import SQLAlchemyError
 from src.controller.users_controller import * 
-from src.models.users import User,OTP
+from src.models.users import User,OTP,EncryptedFile
 from itsdangerous import URLSafeTimedSerializer
 from flask_jwt_extended import create_access_token ,verify_jwt_in_request,decode_token
-from flask import Blueprint, request, render_template, redirect, url_for, session, Response,flash,send_file
+from flask import Blueprint, request, render_template, redirect, url_for, session, Response,flash
 import random
 import hashlib
 import pickle
@@ -420,6 +420,7 @@ def verify_otp():
             return render_template('verify_otp.html', response=response, user_id=user_id), HTTPStatus.INTERNAL_SERVER_ERROR
 
     user_id = request.args.get('user_id')
+    session['user_id'] = user_id
     return render_template('verify_otp.html', user_id=user_id), HTTPStatus.OK
 
 
@@ -812,166 +813,128 @@ def home():
     
 
 
-# UPLOAD_FOLDER = 'uploads'
-# ENCRYPTED_FOLDER = 'encrypted_files'
+#============================================================
 
-# # Ensure upload and encrypted folders exist
-# os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-# os.makedirs(ENCRYPTED_FOLDER, exist_ok=True)
-
-# current_app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-# current_app.config['ENCRYPTED_FOLDER'] = ENCRYPTED_FOLDER
-# Mock Database of Emails
-# emails_db = ['test@example.com', 'krishna@example.com', 'user@example.com']
-
-
-# # AES encryption settings
-# AES_KEY = os.urandom(32)  # 256-bit key for AES-256
-# AES_IV = os.urandom(16)  # 128-bit IV
-
-# def encrypt_file(filepath, filename):
-#     # Read the file data
-#     with open(filepath, 'rb') as f:
-#         file_data = f.read()
-
-#     # Pad the data for AES block size (128 bits)
-#     padder = padding.PKCS7(algorithms.AES.block_size).padder()
-#     padded_data = padder.update(file_data) + padder.finalize()
-
-#     # Create AES cipher
-#     cipher = Cipher(algorithms.AES(AES_KEY), modes.CBC(AES_IV), backend=default_backend())
-#     encryptor = cipher.encryptor()
-    
-#     # Encrypt the data
-#     encrypted_data = encryptor.update(padded_data) + encryptor.finalize()
-
-#     # Save the encrypted data to a new file
-#     encrypted_filename = f'encrypted_{filename}'
-#     encrypted_filepath = os.path.join(current_app.config['ENCRYPTED_FOLDER'], encrypted_filename)
-    
-#     with open(encrypted_filepath, 'wb') as f:
-#         f.write(AES_IV + encrypted_data)  # Save IV + encrypted data
-    
-#     return encrypted_filepath
-
-
-# def decrypt_file(filepath, filename):
-#     try:
-#         # Read the encrypted file data
-#         with open(filepath, 'rb') as f:
-#             file_data = f.read()
-
-#         # Extract the IV and encrypted data
-#         iv = file_data[:16]
-#         encrypted_data = file_data[16:]
-
-#         # Create AES cipher for decryption
-#         cipher = Cipher(algorithms.AES(AES_KEY), modes.CBC(iv), backend=default_backend())
-#         decryptor = cipher.decryptor()
-
-#         # Decrypt the data
-#         decrypted_data = decryptor.update(encrypted_data) + decryptor.finalize()
-
-#         # Unpad the decrypted data
-#         unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder()
-#         decrypted_data = unpadder.update(decrypted_data) + unpadder.finalize()
-
-#         # Save the decrypted file
-#         decrypted_filename = f'decrypted_{filename}'
-#         decrypted_filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], decrypted_filename)
+@users.route('/encrypt', methods=['GET', 'POST'])
+def encrypt():
+    user_id = session.get('user_id')
+    files = EncryptedFile.query.filter_by(user_id=user_id).all()
+    for file in files:
+        size_kb = float(file.file_size)  
+        file.file_size = size_kb / 1024
+    if request.method == 'POST':
+        email = request.form['email']
         
-#         with open(decrypted_filepath, 'wb') as f:
-#             f.write(decrypted_data)
+        if verify_email_in_db(email):
+            flash('Email verified. Please upload your file.', 'success')
+            return render_template('encrypt.html', email_verified=True, email=email,files=files)
+        else:
+            flash('Email not found in the database.', 'danger')
+
+    return render_template('encrypt.html', email_verified=False,files=files)
+
+@users.route('/upload', methods=['POST'])
+def upload():
+    if 'file' not in request.files:
+        flash('No file part', 'danger')
+        return redirect(request.url)
+
+    file = request.files['file']
+    email = request.form['email']
+
+    if file.filename == '':
+        flash('No selected file', 'danger')
+        return redirect(request.url)
+
+    # Retrieve the user by email
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        flash('User not found', 'danger')
+        return redirect(request.url)
+
+    username = user.username
+    user_id = session.get('user_id')
+    print(user_id)
+
+    if file:
+        # Get file size and type
+        file_content = file.read()
+        file_size = len(file_content)
+        file_type = file.content_type
+
+        # Encrypt the file content
+        symmetric_key = generate_symmetric_key()
+        encrypted_content = encrypt_file(file_content, symmetric_key)
+
+        # Store the encrypted file information in the database
+        new_file = EncryptedFile(
+            email=email,
+            user_id=user_id,
+            filename=file.filename,
+            file_size=file_size,
+            file_type=file_type,
+            encrypted_content=encrypted_content,
+            symmetric_key=symmetric_key
+        )
+        db.session.add(new_file)
+        db.session.commit()
+
+        # Send the encrypted file via email
+        sender_email = os.getenv('EMAIL_USER')
+        sender_password = os.getenv('EMAIL_PASS')
+        subject = "Encrypted File"
         
-#         return decrypted_filepath
+        # Update the email body to include the username
+        body_html = f"<h1>Hello {username}!</h1><p>Your file has been encrypted and attached.</p>"
+        send_html_email_with_attachment(sender_email, sender_password, email, subject, body_html, encrypted_content, file.filename + '.enc')
 
-#     except Exception as e:
-#         print(f"Error during decryption: {e}")
-#         return None
+        flash('File uploaded, encrypted, and emailed successfully!', 'success')
+
+    return redirect(url_for('users.home'))
 
 
-
-
-# @users.route('/', methods=['GET', 'POST'])
-# def index():
-#     if request.method == 'POST':
-#         email = request.form.get('email')
-#         if email in emails_db:
-#             flash('Email verified ✅', 'success')
-#             return render_template('uploadfile.html', email_verified=True)
-#         else:
-#             flash('Email not found ❌', 'danger')
-#     return render_template('uploadfile.html', email_verified=False)
-
-# # @users.route('/upload', methods=['POST'])
-# # def upload():
-# #     file = request.files['file']
-# #     # Logic to encrypt and send the file via email goes here.
-# #     flash('File uploaded and sent successfully.', 'success')
-# #     return redirect(url_for('users.index'))
-# @users.route('/upload', methods=['POST'])
-# def upload():
-#     file = request.files['file']
-#     if file:
-#         filename = secure_filename(file.filename)
-#         filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-#         file.save(filepath)
+@users.route('/decrypt', methods=['GET', 'POST'])
+def decrypt():
+    if request.method == 'POST':
+        email = request.form['email']
         
-#         # Encrypt the file
-#         encrypted_filepath = encrypt_file(filepath, filename)
-        
-#         # Check if the encrypted file exists before sending
-#         if os.path.exists(encrypted_filepath):
-#             flash('File encrypted and uploaded successfully.', 'success')
-#             return redirect(url_for('users.index'))
-#         else:
-#             flash('File not found after encryption.', 'danger')
-#             return redirect(url_for('users.index'))
+        # Verify the email in the database
+        if not verify_email_in_db(email):
+            flash('Email not found in the database.', 'danger')
+            return redirect(url_for('decrypt'))
 
+        # Check if the file is in the request
+        if 'file' not in request.files:
+            flash('No file part', 'danger')
+            return redirect(request.url)
 
+        file = request.files['file']
 
-# @users.route('/decrypt', methods=['GET', 'POST'])
-# def decrypt():
-#     # Debugging - Log request method
-#     print(f"Request method: {request.method}")
+        if file.filename == '':
+            flash('No selected file', 'danger')
+            return redirect(request.url)
 
-#     # Handle GET request
-#     if request.method == 'GET':
-#         return render_template('decrypt.html')  # Return a valid response, e.g., render a template
+        if file:
+            # Retrieve the symmetric key for the given email
+            symmetric_key = SYMMETRIC_KEY_STORE.get(email)
 
-#     # Handle POST request
-#     if request.method == 'POST':
-#         # Check if a file was uploaded in the request
-#         if 'file' not in request.files:
-#             flash('No file part in the request.', 'danger')
-#             return redirect(url_for('users.index'))
+            if not symmetric_key:
+                flash('No encryption key found for the provided email.', 'danger')
+                return redirect(url_for('decrypt'))
 
-#         file = request.files['file']
+            # Decrypt the file content
+            encrypted_content = file.read()
+            try:
+                decrypted_content = decrypt_file(encrypted_content, symmetric_key)
+                decrypted_filename = file.filename.replace('.enc', '')
 
-#         if file.filename == '':
-#             flash('No selected file.', 'danger')
-#             return redirect(url_for('users.index'))
+                # Save the decrypted file to local storage
+                save_path = os.path.join('decrypted_files', decrypted_filename)
+                with open(save_path, 'wb') as decrypted_file:
+                    decrypted_file.write(decrypted_content)
 
-#         if file:
-#             # Secure the filename to prevent directory traversal attacks
-#             filename = secure_filename(file.filename)
+                flash(f'File decrypted and saved to {save_path} successfully!', 'success')
+            except Exception as e:
+                flash(f'Decryption failed: {str(e)}', 'danger')
 
-#             # Define the file path to save the encrypted file
-#             filepath = os.path.join(current_app.config['ENCRYPTED_FOLDER'], filename)
-#             file.save(filepath)
-
-#             # Call the decrypt_file function to handle the file decryption
-#             decrypted_filepath = decrypt_file(filepath, filename)
-
-#             if decrypted_filepath:
-#                 # File decrypted successfully, send it to the user
-#                 flash('File decrypted successfully.', 'success')
-#                 return send_file(decrypted_filepath, as_attachment=True)
-#             else:
-#                 flash('Error during decryption.', 'danger')
-
-#         # Redirect to index if the decryption fails
-#         return redirect(url_for('users.index'))
-
-#     # If no valid method is matched, return a default response
-#     return redirect(url_for('users.index'))
+    return render_template('decrypt.html')

@@ -28,3 +28,25 @@ class OTP(get_db().Model):
     user_id = get_db().Column(get_db().Integer, get_db().ForeignKey('users.id'), nullable=False)
     otp = get_db().Column(get_db().String(255), nullable=False)
     created_at = get_db().Column(get_db().DateTime, nullable=False, default=datetime.utcnow)
+
+
+
+class EncryptedFile(get_db().Model):
+    id = get_db().Column(get_db().Integer, primary_key=True)
+    user_id = get_db().Column(get_db().Integer, get_db().ForeignKey('users.id'), nullable=False)
+    email = get_db().Column(get_db().String(120), nullable=False)
+    filename = get_db().Column(get_db().String(120), nullable=False)
+    file_size = get_db().Column(get_db().Integer, nullable=False)
+    file_type = get_db().Column(get_db().Text, nullable=False)
+    encrypted_content = get_db().Column(get_db().LargeBinary, nullable=False)
+    symmetric_key = get_db().Column(get_db().String(256), nullable=False)
+    timestamp = get_db().Column(get_db().DateTime, default=datetime.utcnow)
+
+    def __init__(self, email, user_id, filename, file_size, file_type, encrypted_content, symmetric_key):
+        self.email = email
+        self.user_id = user_id  
+        self.filename = filename
+        self.file_size = file_size
+        self.file_type = file_type
+        self.encrypted_content = encrypted_content
+        self.symmetric_key = symmetric_key

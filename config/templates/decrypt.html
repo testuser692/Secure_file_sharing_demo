@@ -1,24 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File Decryption</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <title>Decrypt File</title>
 </head>
 <body>
-    <div class="container">
-        <h1>Decrypt Your File</h1>
-        <form action="{{ url_for('users.decrypt') }}" method="POST" enctype="multipart/form-data">
-            <div class="form-group">
-                <label for="file">Upload Encrypted File:</label>
-                <input type="file" name="file" id="file" class="form-control" required>
-            </div>
-            <div class="form-group">
-                <button type="submit" class="btn btn-primary">Decrypt File</button>
-            </div>
-        </form>
-        
-    </div>
+    <h1>Decrypt File</h1>
+    <form method="POST" action="{{ url_for('decrypt') }}" enctype="multipart/form-data">
+        <label>Email:</label>
+        <input type="email" name="email" required><br>
+        <label>Encrypted File:</label>
+        <input type="file" name="file" required><br>
+        <button type="submit">Decrypt & Download</button>
+    </form>
 </body>
 </html>
