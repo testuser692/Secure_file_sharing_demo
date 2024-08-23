@@ -232,7 +232,7 @@ def encode_face(image_path):
     
     return encoded_face
 
-face_detector = cv2.CascadeClassifier('G:\ReasonableWord\Secure Messaing and File sharing system\secure_message_system\src\controller\haarcascade_frontalface_default.xml')
+face_detector = cv2.CascadeClassifier('src\controller\haarcascade_frontalface_default.xml')
 
 datetoday = date.today().strftime("%m_%d_%y")
 datetoday2 = date.today().strftime("%d-%B-%Y")
