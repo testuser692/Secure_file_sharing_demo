@@ -1,24 +1,23 @@
+import time
+import pickle
+import random
+import hashlib
 import logging as logger
 from http import HTTPStatus
 from flask import current_app
 from datetime import timedelta
+from dotenv import load_dotenv
 from flask_mail import  Message
 from config import db, bcrypt, mail
 from sqlalchemy.exc import SQLAlchemyError
-from src.controller.users_controller import * 
-from src.models.users import User,OTP,EncryptedFile
-from itsdangerous import URLSafeTimedSerializer
-from flask_jwt_extended import create_access_token ,verify_jwt_in_request,decode_token
-from flask import Blueprint, request, render_template, redirect, url_for, session, Response,flash
-import random
-import hashlib
-import pickle
-import time
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import padding
 from werkzeug.utils import secure_filename
-from dotenv import load_dotenv
+from src.controller.users_controller import *
+from itsdangerous import URLSafeTimedSerializer 
+from cryptography.hazmat.primitives import padding
+from src.models.users import User,OTP,EncryptedFile
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from flask_jwt_extended import create_access_token ,verify_jwt_in_request,decode_token
+from flask import Blueprint, request, render_template, redirect, url_for, session,flash,send_file
 
 load_dotenv()
 
@@ -156,7 +155,15 @@ def confirm_email(token):
             # Send email with generated username
             try:
                 msg = Message("Account Activated", sender=os.getenv('EMAIL_USER'), recipients=[email])
-                msg.body = f"Dear {user.first_name},\n\nYour account has been successfully activated! Your username is: {user.username}\n\nThank you for registering with us."
+                msg.body = (
+                            f"Dear {user.first_name},\n\n"
+                            "Congratulations!\n\n"
+                            "Your account has been successfully activated. Your username is: "
+                            f"{user.username}\n\n"
+                            "Thank you for registering with us. We're excited to have you on board!\n\n"
+                            "Best regards,\n"
+                            "The Team"
+                        )
                 mail.send(msg)
 
                 response = generate_response(
@@ -209,8 +216,13 @@ def forgot_password():
                 token = s.dumps(email, salt=current_app.config['SECURITY_PASSWORD_SALT'])
                 reset_url = url_for('users.reset_password', token=token, _external=True)
                 msg = Message("Password Reset Request", sender=os.getenv('EMAIL_USER'), recipients=[email])
-                msg.body = f"To reset your password, click the following link: {reset_url}\n\nIf you did not make this request, simply ignore this email and no changes will be made."
-
+                msg.body = (
+                            f"To reset your password, click the following link: {reset_url}\n\n"
+                            "If you did not request a password reset, please ignore this email. No changes will be made to your account.\n\n"
+                            "If you have any questions, feel free to contact our support team.\n\n"
+                            "Best regards,\n"
+                            "The Support Team"
+                        )
                 try:
                     mail.send(msg)
                     response = generate_response(
@@ -337,11 +349,16 @@ def login():
                     db.session.add(otp_entry)
                     db.session.commit()
 
-                    msg = Message("Email Confirmation OTP", sender="sheetaljain756@gmail.com", recipients=[email])
-                    msg.body = f"Your OTP for email verification is: {otp}\n\nIf you did not make this request, simply ignore this email."
+                    msg = Message("Email Confirmation OTP", sender=os.getenv('EMAIL_USER'), recipients=[email])
+                    msg.body = (
+                                f"Your OTP for email verification is: {otp}\n\n"
+                                "If you did not request this OTP, please disregard this email. No changes will be made to your account.\n\n"
+                                "Thank you,\n"
+                                "The Team"
+                            )
                     mail.send(msg)
 
-                    flash('A confirmation email has been sent with an OTP.', 'info')
+                    # flash('A confirmation email has been sent with an OTP.', 'info')
                     return redirect(url_for('users.verify_otp', user_id=user.id))
 
             response = generate_response(
@@ -467,8 +484,8 @@ def verify_otp():
 #         )
 #         return render_template('face_capture.html', response=response), HTTPStatus.INTERNAL_SERVER_ERROR
 
-
 nimgs = 15
+
 @users.route('/add', methods=['GET', 'POST'])
 def add():
     if request.method == 'POST':
@@ -496,8 +513,24 @@ def add():
 
             i, j = 0, 0
             cap = cv2.VideoCapture(0)
+            if not cap.isOpened():
+                print("Error: Could not open video capture.")
+                return render_template(
+                    'face_capture.html',
+                    response={'status': HTTPStatus.INTERNAL_SERVER_ERROR, 'message': 'Camera initialization failed.'}
+                ), HTTPStatus.INTERNAL_SERVER_ERROR
+
             while True:
-                _, frame = cap.read()
+                ret, frame = cap.read()
+                if not ret or frame is None or frame.size == 0:
+                    print("Error: Frame is empty or not captured correctly.")
+                    break
+
+                height, width = frame.shape[:2]
+                if width <= 0 or height <= 0:
+                    print("Error: Frame dimensions are invalid.")
+                    break
+
                 faces = extract_faces(frame)
                 for (x, y, w, h) in faces:
                     cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 20), 2)
@@ -510,9 +543,11 @@ def add():
                     j += 1
                 if j == nimgs * 5:
                     break
+
                 cv2.imshow('Adding new User', frame)
-                if cv2.waitKey(1) == 27:
+                if cv2.waitKey(1) == 27:  # Exit on 'ESC' key
                     break
+
             cap.release()
             cv2.destroyAllWindows()
 
@@ -533,9 +568,7 @@ def add():
                 phone_number=contact_no,
                 biometric_data=pkl_data
             )
-            # db_session = get_db().session
             db.session.add(user)
-            # db_session.add(user)
             db.session.commit()
 
             # Assume extract_attendance is a function that retrieves attendance information
@@ -830,51 +863,86 @@ def encrypt():
     user_id = session.get('user_id')
     user_email = session.get('user_email')
     recieved_files = EncryptedFile.query.filter_by(email=user_email).all()
-    print(recieved_files)
-    # Print the filenames
+
+    # Print the filenames (for debugging purposes)
     for file in recieved_files:
         print(file.filename)
+
+    # Get files belonging to the user and convert sizes to KB
     files = EncryptedFile.query.filter_by(user_id=user_id).all()
     for file in files:
-        size_kb = float(file.file_size)  
+        size_kb = float(file.file_size)
         file.file_size = size_kb / 1024
+
+    message = None
+    status = None
+
     if request.method == 'POST':
         email = request.form['email']
-        
-        if verify_email_in_db(email):
-            flash('Email verified. Please upload your file.', 'success')
-            return render_template('encrypt.html', email_verified=True, email=email,files=files)
-        else:
-            flash('Email not found in the database.', 'danger')
 
-    return render_template('encrypt.html', email_verified=False,files=files)
+        if verify_email_in_db(email):
+            message = 'Email verified. Please upload your file.'
+            status = HTTPStatus.OK
+            return render_template('encrypt.html', email_verified=True, email=email, files=files, message=message, status=status)
+        else:
+            message = 'Email not found in the database.'
+            status = HTTPStatus.NOT_FOUND
+            return render_template('encrypt.html', email_verified=False, files=files, message=message, status=status)
+
+    return render_template('encrypt.html', email_verified=False, files=files, message=message, status=status)
+
+
 
 @users.route('/upload', methods=['POST'])
 def upload():
     if 'file' not in request.files:
-        flash('No file part', 'danger')
-        return redirect(request.url)
+        response = {
+            'status': HTTPStatus.BAD_REQUEST,
+            'message': 'No file part in the request.'
+        }
+        return render_template('encrypt.html', response=response), HTTPStatus.BAD_REQUEST
 
     file = request.files['file']
     email = request.form['email']
 
     if file.filename == '':
-        flash('No selected file', 'danger')
-        return redirect(request.url)
+        response = {
+            'status': HTTPStatus.BAD_REQUEST,
+            'message': 'No selected file.'
+        }
+        return render_template('encrypt.html', response=response), HTTPStatus.BAD_REQUEST
 
     # Retrieve the user by email
     user = User.query.filter_by(email=email).first()
     if not user:
-        flash('User not found', 'danger')
-        return redirect(request.url)
+        response = {
+            'status': HTTPStatus.NOT_FOUND,
+            'message': 'User not found.'
+        }
+        return render_template('encrypt.html', response=response), HTTPStatus.NOT_FOUND
 
     username = user.username
     user_id = session.get('user_id')
-    print(user_id)
 
     if file:
-        # Get file size and type
-        file_content = file.read()
+        # Secure the filename
+        filename = secure_filename(file.filename)
+
+        # Specify the directory where files will be saved
+        upload_folder = os.path.join('uploads', str(user_id))
+
+        # Create the directory if it doesn't exist
+        if not os.path.exists(upload_folder):
+            os.makedirs(upload_folder)
+
+        # Save the file to the directory
+        file_path = os.path.join(upload_folder, filename)
+        file.save(file_path)
+
+        # Read the file content
+        with open(file_path, 'rb') as f:
+            file_content = f.read()
+
         file_size = len(file_content)
         file_type = file.content_type
 
@@ -882,11 +950,16 @@ def upload():
         symmetric_key = generate_symmetric_key()
         encrypted_content = encrypt_file(file_content, symmetric_key)
 
+        # Save the encrypted content back to a file in the directory
+        encrypted_file_path = os.path.join(upload_folder, filename + '.enc')
+        with open(encrypted_file_path, 'wb') as enc_file:
+            enc_file.write(encrypted_content)
+
         # Store the encrypted file information in the database
         new_file = EncryptedFile(
             email=email,
             user_id=user_id,
-            filename=file.filename,
+            filename=filename,
             file_size=file_size,
             file_type=file_type,
             encrypted_content=encrypted_content,
@@ -901,63 +974,131 @@ def upload():
         subject = "Encrypted File"
         
         # Update the email body to include the username
-        body_html = f"<h1>Hello {username}!</h1><p>Your file has been encrypted and attached.</p>"
-        send_html_email_with_attachment(sender_email, sender_password, email, subject, body_html, encrypted_content, file.filename + '.enc')
+        body_html = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body {{
+                        font-family: Arial, sans-serif;
+                        color: #333;
+                        line-height: 1.6;
+                    }}
+                    .container {{
+                        padding: 20px;
+                        background-color: #f4f4f4;
+                        border-radius: 10px;
+                        margin: 0 auto;
+                        max-width: 600px;
+                    }}
+                    h1 {{
+                        color: #4CAF50;
+                    }}
+                    p {{
+                        font-size: 16px;
+                    }}
+                    .message {{
+                        padding: 15px;
+                        background-color: #e7f3fe;
+                        border-left: 6px solid #2196F3;
+                        margin-bottom: 20px;
+                        border-radius: 5px;
+                    }}
+                    .key {{
+                        background-color: #f8f9fa;
+                        padding: 10px;
+                        border-radius: 4px;
+                        font-family: monospace;
+                        font-size: 14px;
+                        word-wrap: break-word;
+                    }}
+                    footer {{
+                        margin-top: 30px;
+                        font-size: 12px;
+                        color: #777;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>Hello {username}!</h1>
+                    <div class="message">
+                        <p>Your file has been successfully encrypted and attached to this email.</p>
+                        <p>Here is your symmetric encryption key for decryption:</p>
+                        <div class="key">
+                            {symmetric_key}
+                        </div>
+                    </div>
+                    <footer>
+                        <p>If you have any issues or questions, feel free to reach out to our support team.</p>
+                        <p>Thank you for using our secure file encryption service!</p>
+                    </footer>
+                </div>
+            </body>
+            </html>
+                        """
+        send_html_email_with_attachment(sender_email, sender_password, email, subject, body_html, encrypted_content, filename + '.enc')
 
-        flash('File uploaded, encrypted, and emailed successfully!', 'success')
+        response = {
+            'status': HTTPStatus.OK,
+            'message': 'File uploaded, encrypted, saved, and emailed successfully!'
+        }
+        return render_template('home.html', response=response), HTTPStatus.OK
 
-    return redirect(url_for('users.home'))
-
+    response = {
+        'status': HTTPStatus.INTERNAL_SERVER_ERROR,
+        'message': 'An error occurred during file processing.'
+    }
+    return render_template('encrypt.html', response=response), HTTPStatus.INTERNAL_SERVER_ERROR
 
 @users.route('/decrypt', methods=['GET', 'POST'])
 def decrypt():
-    if request.method == 'POST':
-        email = request.form['email']
-        
-        # Verify the email in the database
-        if not verify_email_in_db(email):
-            flash('Email not found in the database.', 'danger')
-            return redirect(url_for('decrypt'))
+    user_id = session.get('user_id')
+    user_email = session.get('user_email')
 
-        # Check if the file is in the request
-        if 'file' not in request.files:
-            flash('No file part', 'danger')
-            return redirect(request.url)
+    # Retrieve the received files for the user
+    received_files = EncryptedFile.query.filter_by(email=user_email).all()
 
-        file = request.files['file']
-
-        if file.filename == '':
-            flash('No selected file', 'danger')
-            return redirect(request.url)
-
-        if file:
-            # # Retrieve the symmetric key for the given email
-            # symmetric_key = SYMMETRIC_KEY_STORE.get(email)
-            encrypted_file_record = EncryptedFile.query.filter_by(email=email).first()
-
-            if not encrypted_file_record:
-                flash('No encryption key found for the provided email.', 'danger')
-                return redirect(url_for('users.decrypt'))
-
-            symmetric_key = encrypted_file_record.symmetric_key
-
-            if not symmetric_key:
-                flash('No encryption key found for the provided email.', 'danger')
-                return redirect(url_for('users.decrypt'))
-
-            # Decrypt the file content
-            encrypted_content = file.read()
+    # Check if any files are available for decryption
+    if received_files:
+        # Decrypt each file and pass them to the template
+        for file in received_files:
             try:
-                decrypted_content = decrypt_file(encrypted_content, symmetric_key)
-                decrypted_filename = file.filename.replace('.enc', '')
-
-                # Save the decrypted file to local storage
-                save_path = os.path.join('decrypted_files', decrypted_filename)
-                with open(save_path, 'wb') as decrypted_file:
-                    decrypted_file.write(decrypted_content)
-
-                flash(f'File decrypted and saved to {save_path} successfully!', 'success')
+                decrypt_file()  # Ensure you're passing the correct file to the decryption function
             except Exception as e:
-                flash(f'Decryption failed: {str(e)}', 'danger')
+                # Log the error or handle it appropriately
+                print(f"Error decrypting file {file.filename}: {e}")
 
-    return render_template('decrypt.html')
+        # Pass the list of decrypted files to the template
+        return render_template('decrypt.html', email_verified=True, files=received_files)
+    else:
+        # No files found for the user
+        return render_template('decrypt.html', email_verified=False, files=[])
+
+@users.route('/process_decryption', methods=['POST'])
+def process_decryption():
+    symmetric_key = request.form.get('symmetric_key')
+    uploaded_file = request.files.get('file')
+
+    if not symmetric_key or not uploaded_file:
+        flash("Symmetric key and file are required for decryption.", "error")
+        return redirect(url_for('users.decrypt'))
+
+    try:
+        # Read the encrypted file content
+        encrypted_file_content = uploaded_file.read()
+
+        # Decrypt the file
+        decrypted_file_content = decrypt_files(encrypted_file_content, symmetric_key)
+
+        # Save the decrypted file temporarily to a location
+        decrypted_file_path = os.path.join(os.getenv('decrypted_file_path'), 'decrypted_file.pdf')
+        with open(decrypted_file_path, 'wb') as f:
+            f.write(decrypted_file_content)
+
+        # Allow the user to download the decrypted file
+        return send_file(decrypted_file_path, as_attachment=True, download_name='decrypted_file.pdf')
+
+    except Exception as e:
+        flash(f"Error during decryption: {e}", "error")
+        return redirect(url_for('users.decrypt'))

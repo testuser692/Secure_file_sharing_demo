@@ -1,32 +1,25 @@
 import os
 import re
-from werkzeug.utils import secure_filename
-from datetime import datetime
-from src.models.users import User
-from config import db, bcrypt
-from config.settings import Config
-from dotenv import load_dotenv
 import cv2
-from datetime import datetime, date
-import numpy as np
-from sklearn.neighbors import KNeighborsClassifier
-import pandas as pd
-import joblib
 import csv
+import joblib
 import base64
-import sqlite3
-import mimetypes
 import smtplib
-from email.message import EmailMessage
+import mimetypes
+import numpy as np
+import pandas as pd
+from config import db, bcrypt
+from dotenv import load_dotenv
+from src.models.users import User
+from config.settings import Config
+from datetime import datetime, date
 from cryptography.fernet import Fernet
-import os
-import io
-
+from email.message import EmailMessage
+from werkzeug.utils import secure_filename
+from sklearn.neighbors import KNeighborsClassifier
 
 
 load_dotenv()
-
-
 
 # Configuration for file uploads
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
@@ -78,7 +71,6 @@ def validate_password_strength(password):
     return True, ""
 
 
-
 def create_user(email, password, first_name, last_name, phone_number,username, is_active):
     from config import db
     from src.models.users import User  # Assuming the User model is defined in models.py
@@ -97,6 +89,7 @@ def create_user(email, password, first_name, last_name, phone_number,username, i
     )
     db.session.add(user)
     return user
+
 
 def get_user_by_email(email):
     """
@@ -120,17 +113,6 @@ def get_user_by_id(user_id):
         print(f"Error occurred while querying the user by ID: {e}")
         return None
 
-# def get_user_profile_by_id(user_id):
-#     """
-#     Retrieve a user profile from the database by user ID.
-#     """
-#     try:
-#         profile = UserProfile.query.get(user_id)
-#         return profile
-#     except Exception as e:
-#         print(f"Error occurred while querying the user profile by ID: {e}")
-#         return None
-
 def update_user_password(user, new_password):
     """
     Update the password for a user.
@@ -144,34 +126,6 @@ def update_user_password(user, new_password):
         print(f"Error occurred while updating the password: {e}")
         db.session.rollback()
         return False
-
-# def update_user_details(user_id, form, files):
-#     """
-#     Update user details based on form data and files.
-#     """
-#     try:
-#         user = get_user_by_id(user_id)
-#         user_profile = get_user_profile_by_id(user_id)
-#         if user and user_profile:
-#             # Update User fields
-#             if form.first_name.data:
-#                 user_profile.first_name = form.first_name.data
-#             if form.last_name.data:
-#                 user_profile.last_name = form.last_name.data
-#             if form.contact_no.data:
-#                 user_profile.contact_no = form.contact_no.data
-
-#             user.modified_at = datetime.utcnow()
-#             user_profile.modified_at = datetime.utcnow()
-
-#             db.session.commit()
-#             return True
-#         else:
-#             return False
-#     except Exception as e:
-#         print(f"Error occurred while updating user details: {e}")
-#         db.session.rollback()
-#         return False
 
 def save_profile_image(file):
     """
@@ -232,14 +186,13 @@ def encode_face(image_path):
     
     return encoded_face
 
-face_detector = cv2.CascadeClassifier('src/controller/haarcascade_frontalface_default.xml')
+face_detector = cv2.CascadeClassifier('/home/ubuntu/secure_message_file_sharing_app/src/controller/haarcascade_frontalface_default.xml')
 
 datetoday = date.today().strftime("%m_%d_%y")
 datetoday2 = date.today().strftime("%d-%B-%Y")
 
 def totalreg():
     return len(os.listdir('static/faces'))
-
 
 def extract_faces(img):
     try:
@@ -304,32 +257,6 @@ def extract_biometric_data():
     times = df['Time']
     l = len(df)
     return first_names, last_names, contact_nos, times, l
-
-
-# def extract_biometric_data():
-#     file_path = f'BiometricData/BiometricData-{datetoday}.csv'
-    
-#     # Check if the file exists and is not empty
-#     if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
-#         df = pd.read_csv(file_path)
-#     else:
-#         return [], [], [], [], [], [], [], [], [], 0  # Return empty lists if file is empty
-
-#     ids = df['id']
-#     emails = df['email']
-#     usernames = df['username']
-#     first_names = df['first_name']
-#     last_names = df['last_name']
-#     phone_numbers = df['phone_number']
-#     is_active = df['is_active']
-#     created_at = df['created_at']
-#     modified_at = df['modified_at']
-    
-#     l = len(df)  # Number of users
-    
-#     return ids, emails, usernames, first_names, last_names, phone_numbers, is_active, created_at, modified_at, l
-
-
 
 
 def add_biomatric(name, arg2, arg3, arg4):
@@ -437,3 +364,16 @@ def verify_email_in_db(email):
     else:
         print(f"Email {email} does not exist in the database.")
     return user is not None  # Return True if the user exists, otherwise False
+
+
+# Decrypt the file content using Fernet
+def decrypt_files(encrypted_file_content, symmetric_key):
+    # Convert symmetric key to bytes
+    symmetric_key = symmetric_key.encode()  # Convert to bytes if it's in string format
+    
+    # Create Fernet instance
+    fernet = Fernet(symmetric_key)
+    
+    # Decrypt the file content
+    decrypted_file_content = fernet.decrypt(encrypted_file_content)
+    return decrypted_file_content

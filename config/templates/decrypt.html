@@ -1,16 +1,257 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-    <title>Decrypt File</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>Secure Messaging and File Sharing</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        header {
+            background-color: #8B4513;
+            color: #fff;
+            padding: 1rem;
+            text-align: right;
+        }
+
+        nav ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        nav ul li {
+            display: inline;
+            margin-right: 20px;
+        }
+
+        nav ul li a {
+            color: #fff;
+            text-decoration: none;
+        }
+
+        nav ul li a:hover {
+            text-decoration: underline;
+        }
+
+        h1 {
+            text-align: center;
+            margin: 0;
+            padding: 1rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 1rem;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        form {
+            margin-bottom: 2rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: .5rem;
+        }
+
+        input[type="email"],
+        input[type="file"],
+        input[type="text"] {
+            width: 100%;
+            padding: .5rem;
+            margin-bottom: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        button {
+            padding: .5rem 1rem;
+            background-color: #333;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #555;
+        }
+
+        .flash-messages {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .flash-messages li {
+            margin-bottom: .5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 2rem;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid #ddd;
+        }
+
+        th,
+        td {
+            padding: .75rem;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f4f4f4;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+            padding-top: 60px;
+        }
+
+        .modal-content {
+            background-color: #fff;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+            border-radius: 10px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
 </head>
+
 <body>
-    <h1>Decrypt File</h1>
-    <form method="POST" action="{{ url_for('users.decrypt') }}" enctype="multipart/form-data">
-        <label>Email:</label>
-        <input type="email" name="email" required><br>
-        <label>Encrypted File:</label>
-        <input type="file" name="file" required><br>
-        <button type="submit">Decrypt & Download</button>
-    </form>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="#">Instructions</a></li>
+                <li><a href="#">Encryption Chat</a></li>
+                <li><a href="#">Decryption Chat</a></li>
+                <li><a href="#">Additional Features</a></li>
+                <li><a href="#">About Us</a></li>
+                <li><a href="#">Services</a></li>
+            </ul>
+        </nav>
+        <h1>Secure Messaging and File Sharing</h1>
+    </header>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <ul class="flash-messages">
+            {% for category, message in messages %}
+            <li class="{{ category }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        {% endwith %}
+
+        <h2>Received Encrypted Mails</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>File Name</th>
+                    <th>Sending Email</th>
+                    <th>Size</th>
+                    <th>Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for file in files %}
+                <tr>
+                    <td>{{ file.filename }}</td>
+                    <td>{{ file.email }}</td>
+                    <td>{{ file.file_size|round(2) }} KB</td>
+                    <td>{{ file.file_type }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4">No files available for decryption.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div>
+            <br>
+        <button id="decryptBtn">Decrypt File</button>
+        </div>
+        <!-- Modal -->
+        <div id="decryptModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <form method="POST" action="{{ url_for('users.process_decryption') }}" enctype="multipart/form-data">
+                    <label>Symmetric Key:</label>
+                    <input type="text" name="symmetric_key" required>
+                    <label>Upload Encrypted File:</label>
+                    <input type="file" name="file" required>
+                    <button type="submit">Decrypt & Download</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get modal elements
+        var modal = document.getElementById("decryptModal");
+        var btn = document.getElementById("decryptBtn");
+        var span = document.getElementsByClassName("close")[0];
+
+        // Open the modal
+        btn.onclick = function () {
+            modal.style.display = "block";
+        }
+
+        // Close the modal
+        span.onclick = function () {
+            modal.style.display = "none";
+        }
+
+        // Close if user clicks outside the modal
+        window.onclick = function (event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+    </script>
 </body>
+
 </html>
