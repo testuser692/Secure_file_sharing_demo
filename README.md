@@ -104,15 +104,17 @@ Clone the project repository and configure environment variables.
 Set up a reverse proxy using Nginx or Apache and run the Flask application using a WSGI server like Gunicorn.
 
 ## Usage
-### Key Endpoints:
-/user_registration: Register a new user with biometric face recognition.
-/login: Log in an existing user with face recognition-based authentication.
-/send_message: Send an encrypted message to a user.
-/send_file: Upload and send an encrypted file to another user.
-/decrypt_file: Decrypt a received file for viewing.
-/chat: Start a real-time P2P chat session with another user.
-/decrypt_message: Decrypt chat messages.
-/audit_trail: View audit logs of user actions for monitoring and security anal
+```
+  ### Key Endpoints:
+  /user_registration: Register a new user with biometric face recognition.
+  /login: Log in an existing user with face recognition-based authentication.
+  /send_message: Send an encrypted message to a user.
+  /send_file: Upload and send an encrypted file to another user.
+  /decrypt_file: Decrypt a received file for viewing.
+  /chat: Start a real-time P2P chat session with another user.
+  /decrypt_message: Decrypt chat messages.
+  /audit_trail: View audit logs of user actions for monitoring and security anal
+```
 
 ## Encryption & Decryption:
 AES Encryption: Files and messages are encrypted using AES before transmission.
