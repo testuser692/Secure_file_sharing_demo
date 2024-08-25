@@ -5,23 +5,34 @@ This project is a secure peer-to-peer (P2P) messaging and file-sharing system wi
 
 ## Project Structure
 The following is the project structure:
-```
-├── src/
+```├── src/
 │   ├── controller/
-│   │   └── users_controller.py
+│   │   ├── users_controller.py
+│   │   ├── file_controller.py   # Handles file encryption and sharing routes
+│   │   └── chat_controller.py   # Handles P2P chat functionalities
 │   ├── models/
 │   │   ├── users.py
-│   │   └── otp.py
-│   └── templates/
-│       ├── registerasuser.html
-│       ├── login.html
-│       ├── confirm_email.html
-│       ├── forgot_password.html
-│       ├── reset_password.html
-│       └── verify_otp.html
+│   │   ├── otp.py
+│   │   └── file.py              # Database model for tracking file uploads
+│   ├── templates/
+│   │   ├── registerasuser.html
+│   │   ├── login.html
+│   │   ├── confirm_email.html
+│   │   ├── forgot_password.html
+│   │   ├── reset_password.html
+│   │   ├── verify_otp.html
+│   │   ├── upload_file.html      # HTML template for file upload
+│   │   ├── file_list.html        # Displays list of received files
+│   │   └── chat.html             # Chat UI template
+├── static/
+│   ├── css/
+│   │   └── styles.css            
 ├── config.py
 ├── app.py
-└── README.md
+├── README.md
+├── requirements.txt
+└── .env
+
 
 ```
 
@@ -65,35 +76,72 @@ EMAIL_PASSWORD=your_email_password
 - Python 3.x
 - PostgreSQL
 - Flask templates
+- AWS EC2 Instance (for deployment)
 
 ### Steps:
 1. Clone the repository:
    ```bash
    git clone https://github.com/testuser692/Secure_file_sharing_demo.git 
-   cd your-repo
+   cd Secure_file_sharing_demo
 
-Install Python dependencies:
+### Install Python dependencies:
 pip install -r requirements.txt
-Set up PostgreSQL database and configure the DATABASE_URL in the .env file.
 
-# run the main file
-# python main.py
+### Set up PostgreSQL database:
+Create a PostgreSQL database.
+Configure the DATABASE_URL in the .env file
 
+### Run the main file
+ python main.py
+
+# Deploy to AWS EC2 instance:
+Set up an EC2 instance with necessary security groups.
+Install required dependencies on the instance (Python, PostgreSQL, etc.).
+Clone the project repository and configure environment variables.
+Set up a reverse proxy using Nginx or Apache and run the Flask application using a WSGI server like Gunicorn.
 
 ## Usage
-/user_registration: Endpoint to register a new user with face recognition.
-/login: Endpoint for user login.
-Make sure to register users by capturing face images and storing them for biometric authentication.
+### Key Endpoints:
+/user_registration: Register a new user with biometric face recognition.
+/login: Log in an existing user with face recognition-based authentication.
+/send_message: Send an encrypted message to a user.
+/send_file: Upload and send an encrypted file to another user.
+/decrypt_file: Decrypt a received file for viewing.
+/chat: Start a real-time P2P chat session with another user.
+/decrypt_message: Decrypt chat messages.
+/audit_trail: View audit logs of user actions for monitoring and security anal
+
+## Encryption & Decryption:
+AES Encryption: Files and messages are encrypted using AES before transmission.
+RSA for Key Exchange: RSA encryption is used to securely exchange AES keys between users.
+End-to-End Encrypted Chat: All chat messages are encrypted with AES and decrypted on the recipient's end.
+
+## File Sharing:
+File Upload and Encryption: When a user uploads a file, it is encrypted with AES before being stored.
+File Decryption: The recipient decrypts the file using the AES key provided after secure exchange via RSA.
+## P2P Chat:
+Real-Time Messaging: Users can send messages to each other via the chat interface, with each message being encrypted.
+Message Decryption: Messages are decrypted on the recipient's end to ensure end-to-end security.
 
 ## Features
-End-to-End Encryption: AES encryption for messages and files.
-Biometric Authentication: Face recognition for user login.
-Audit Trails: Logs of user actions for security purposes.
-Contribution Guidelines
-Fork the repository.
-Create a new branch for your feature.
-Submit a pull request.
+End-to-End Encryption: Secure encryption of messages and files using AES and RSA algorithms.
+Biometric Authentication: Face recognition ensures secure login.
+Encrypted File Sharing: Enables users to share files securely with AES encryption.
+Real-Time Encrypted Chat: Secure real-time messaging between users using AES.
+Audit Trails: Tracks user activity for enhanced security.
+Email Notifications: Sends OTPs for email verification and password resets.
 
+## Deployment
+AWS EC2 Instance: The application is hosted on an EC2 instance for cloud accessibility.
+Ensure proper security configurations are set up (e.g., firewalls, SSL).
+Use environment variables in the .env file for production settings.
+
+## Contribution Guidelines
+Fork the repository.
+Create a new branch for your feature or bug fix.
+Commit your changes with clear messages.
+Push the branch to your forked repository.
+Submit a pull request with a description of the changes you made.
 
 This `README.md` includes:
 - A clear **project structure**.
