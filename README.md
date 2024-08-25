@@ -80,19 +80,22 @@ EMAIL_PASSWORD=your_email_password
 
 ### Steps:
 1. Clone the repository:
-   ```bash
+   ```
    git clone https://github.com/testuser692/Secure_file_sharing_demo.git 
    cd Secure_file_sharing_demo
 
-### Install Python dependencies:
-pip install -r requirements.txt
+2. Install Python dependencies:
+   ```
+    pip install -r requirements.txt
 
-### Set up PostgreSQL database:
-Create a PostgreSQL database.
-Configure the DATABASE_URL in the .env file
+3. Set up PostgreSQL database:
+   ```
+    Create a PostgreSQL database.
+    Configure the DATABASE_URL in the .env file
 
-### Run the main file
- python main.py
+4. Run the main file
+   ```
+   python main.py
 
 # Deploy to AWS EC2 instance:
 Set up an EC2 instance with necessary security groups.
