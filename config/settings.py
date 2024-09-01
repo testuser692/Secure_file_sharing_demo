@@ -6,7 +6,7 @@ load_dotenv()
 
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', "SECRET_KEY")
-    MAIL_SERVER = 'smtp.office365.com'
+    MAIL_SERVER = os.getenv('MAIL_SERVER')
     MAIL_PORT = 587
     MAIL_USE_TLS = True
     MAIL_USERNAME = os.getenv('EMAIL_USER')

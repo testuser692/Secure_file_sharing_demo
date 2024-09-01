@@ -5,6 +5,72 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Email Confirmation</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <style>
+        /* Container for the confirmation message */
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #f4f4f4;
+}
+
+/* Confirmation message box */
+.confirmation-message {
+    background-color: #ffffff;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    max-width: 500px;
+    width: 100%;
+}
+
+/* Typography for headings */
+.confirmation-message h1 {
+    font-size: 2.5rem;
+    color: #333333;
+    margin-bottom: 20px;
+}
+
+/* Typography for paragraphs */
+.confirmation-message p {
+    font-size: 1.2rem;
+    color: #666666;
+    margin-bottom: 30px;
+}
+
+/* Primary button style */
+.btn {
+    padding: 10px 20px;
+    border-radius: 5px;
+    text-decoration: none;
+    color: #ffffff;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+}
+
+/* Primary button styling */
+.btn-primary {
+    background-color: #28a745;
+    border: none;
+}
+
+.btn-primary:hover {
+    background-color: #218838;
+}
+
+/* Secondary button styling */
+.btn-secondary {
+    background-color: #007bff;
+    border: none;
+}
+
+.btn-secondary:hover {
+    background-color: #0056b3;
+}
+
+    </style>
 </head>
 <body>
     <div class="container">

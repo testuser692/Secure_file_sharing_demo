@@ -17,7 +17,17 @@
 
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-8W2PMEX9KX"></script>
   <title>Login</title>
+  <style>
+    /* Center the loader */
+    .loader-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+    }
+  </style>
 </head>
+
 <body>
 
   <section class="user-login">
@@ -28,7 +38,7 @@
       <div class="user-registration">
         <div class="logo">
           <h2>Secure Messaging and File
-            Sharing Instructions
+            Sharing
             </h2>
         </div>
         <div class="title">
@@ -39,7 +49,7 @@
           {{ response.message }}
         </div>
         {% endif %}
-        <form method="POST" action="{{ url_for('users.login') }}">
+        <form method="POST" action="{{ url_for('users.login') }}" onsubmit="showLoader()">
 
           <div class="user-details email">
             <div class="input-box">
@@ -69,19 +79,18 @@
           <div class="button">
             <input type="submit" value="Sign In">
           </div>
+          <div class="loader-container">
+            <div class="loader" id="loader"></div>
+          </div>
           <div class="register-text">
             <h5><a class="back-link" href="{{ url_for('users.start') }}">Login with Face Verification!</a></h5>
             <h5><a class="back-link" href="{{ url_for('users.user_registration') }}">Register as an User Now!</a></h5>
-             <h5><a class="back-link" href="{{ url_for('users.add')}}">Registration with face Verification!!</a></h5> 
-            </div>
+            <h5><a class="back-link" href="{{ url_for('users.add')}}">Registration with face Verification!!</a></h5>
+          </div>
 
         </form>
       </div>
-      <!-- <div class="form-bg2">
-  <img src="images/object.png" alt="">
-</div> -->
     </div>
-
   </section>
 
   <script src="static/js/bootstrap.bundle.min.js" type="static/text/javascript"></script>
@@ -90,6 +99,13 @@
   <script src="static/js/jquery.validate.min.js" type="static/text/javascript"></script>
   <script src="static/js/particles.min.js"></script>
   <script src="static/js/stats.min.js"></script>
-  </body>
+
+  <script>
+    function showLoader() {
+      document.getElementById('loader').style.display = 'block';
+      document.querySelector('input[type="submit"]').disabled = true;
+    }
+  </script>
+</body>
 
 </html>

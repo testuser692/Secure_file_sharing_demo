@@ -1,0 +1,409 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+}
+
+
+/* Navbar Styles */
+
+.navbar {
+    background-color: #8B4513;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-brand {
+    font-size: 1.8rem;
+    color: white;
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+}
+
+.navbar-brand img {
+    vertical-align: middle;
+    margin-right: 10px;
+}
+
+.navbar-nav {
+    display: flex;
+    align-items: center;
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    flex-wrap: wrap;
+}
+
+.nav-item {
+    margin-left: 20px;
+    font-size: 1.2rem;
+}
+
+.nav-link {
+    color: white;
+    text-decoration: none;
+    padding: 5px 10px;
+    transition: color 0.3s ease;
+    position: relative;
+}
+
+.nav-link:hover {
+    color: #FFD700;
+}
+
+.nav-item.dropdown {
+    position: relative;
+}
+
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: white;
+    min-width: 160px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    z-index: 1;
+}
+
+.dropdown-menu a {
+    color: #8B4513;
+    padding: 10px 20px;
+    display: block;
+    text-decoration: none;
+}
+
+.dropdown-menu a:hover {
+    background-color: #f1f1f1;
+}
+
+.dropdown:hover .dropdown-menu {
+    display: block;
+}
+
+
+/* Toggle Button for Mobile */
+
+.navbar-toggler {
+    display: none;
+    font-size: 1.5rem;
+    color: white;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.navbar-toggler-icon {
+    display: inline-block;
+    width: 25px;
+    height: 2px;
+    background-color: white;
+    position: relative;
+}
+
+.navbar-toggler-icon::before,
+.navbar-toggler-icon::after {
+    content: '';
+    display: block;
+    width: 25px;
+    height: 2px;
+    background-color: white;
+    position: absolute;
+    left: 0;
+}
+
+.navbar-toggler-icon::before {
+    top: -8px;
+}
+
+.navbar-toggler-icon::after {
+    bottom: -8px;
+}
+
+
+/* Mobile Styles */
+
+@media (max-width: 768px) {
+    .navbar-nav {
+        display: none;
+        flex-direction: column;
+        width: 100%;
+        margin-top: 10px;
+    }
+    .navbar-nav.active {
+        display: flex;
+    }
+    .navbar-toggler {
+        display: block;
+    }
+    .nav-item {
+        margin: 10px 0;
+        text-align: center;
+    }
+}
+
+
+/* Header Styles */
+
+.header {
+    background-color: #8B4513;
+    color: #fff;
+    padding: 20px;
+    text-align: center;
+    border-bottom: 3px solid #FFD700;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.header h1 {
+    font-size: 2rem;
+    margin: 0;
+    font-weight: bold;
+}
+
+.container {
+    max-width: 100%;
+    margin: 2rem auto;
+    padding: 1rem;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+form {
+    margin-bottom: 2rem;
+}
+
+label {
+    display: block;
+    margin-bottom: .5rem;
+}
+
+input[type="email"],
+input[type="file"],
+input[type="text"] {
+    width: 100%;
+    padding: .5rem;
+    margin-bottom: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+button {
+    padding: .5rem 1rem;
+    background-color: #333;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #555;
+}
+
+.flash-messages {
+    list-style-type: none;
+    padding: 0;
+}
+
+.flash-messages li {
+    margin-bottom: .5rem;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 2rem;
+}
+
+table,
+th,
+td {
+    border: 1px solid #ddd;
+}
+
+th,
+td {
+    padding: .75rem;
+    text-align: left;
+}
+
+th {
+    background-color: #f4f4f4;
+}
+
+
+/* Modal Styles */
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.4);
+    padding-top: 60px;
+}
+
+.modal-content {
+    background-color: #fff;
+    margin: 5% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 400px;
+    border-radius: 10px;
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.profile-info {
+    margin-bottom: 20px;
+}
+
+.profile-info h4 {
+    margin-bottom: 5px;
+}
+
+.profile-info p {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.btn-change-password {
+    background-color: #8B4513;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.btn-change-password:hover {
+    background-color: #6f3311;
+}
+
+.footer {
+    background-color: #8B4513;
+    color: #fff;
+    padding: 10px;
+    text-align: center;
+    margin-top: 20px;
+}
+
+.loader {
+    border: 8px solid #f3f3f3;
+    border-top: 8px solid #3498db;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 2s linear infinite;
+    margin: 20px auto;
+    display: none;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.flash-messages {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.flash-messages li {
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    color: white;
+    font-family: Arial, sans-serif;
+    font-size: 16px;
+}
+
+.flash-messages .error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.flash-messages .success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+
+/* Improved responsiveness */
+
+@media (max-width: 768px) {
+    .header h1 {
+        font-size: 1.5rem;
+    }
+    .nav-item {
+        margin-left: 10px;
+    }
+    .navbar-brand {
+        font-size: 1.5rem;
+    }
+    .navbar {
+        padding: 10px 10px;
+        /* Reduce padding */
+        justify-content: center;
+        /* Center navbar items */
+    }
+    .navbar-nav {
+        flex-direction: column;
+        /* Stack items vertically on smaller screens */
+        align-items: center;
+        /* Center items */
+    }
+    .nav-item {
+        margin: 5px 0;
+        /* Add some vertical spacing between items */
+    }
+    .modal-content {
+        width: 90%;
+        /* Adjust modal width for smaller screens */
+    }
+    /* Responsive Table */
+    .container table {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        /* Enables smooth scrolling on iOS */
+    }
+    .container th,
+    .container td {
+        white-space: nowrap;
+        /* Prevents text from wrapping */
+    }
+}

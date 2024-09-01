@@ -1,4 +1,5 @@
 import time
+import io
 import pickle
 import random
 import hashlib
@@ -16,7 +17,7 @@ from itsdangerous import URLSafeTimedSerializer
 from cryptography.hazmat.primitives import padding
 from src.models.users import User,OTP,EncryptedFile
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from flask_jwt_extended import create_access_token ,verify_jwt_in_request,decode_token
+from flask_jwt_extended import create_access_token ,verify_jwt_in_request,decode_token,get_jwt
 from flask import Blueprint, request, render_template, redirect, url_for, session,flash,send_file
 
 load_dotenv()
@@ -32,7 +33,7 @@ def user_registration():
             password = request.form.get('password')
             first_name = request.form.get('first_name')
             last_name = request.form.get('last_name')
-            phone_number = request.form.get('phone_number')
+            phone_number = request.form.get('contact_no')
             profile_image = request.files.get('profile_image')
 
             logger.info(f"Received registration data: {request.form}")
@@ -87,8 +88,31 @@ def user_registration():
                 token = s.dumps(email, salt=current_app.config['SECURITY_PASSWORD_SALT'])
                 confirm_url = url_for('users.confirm_email', token=token, _external=True)
                 msg = Message("Email Confirmation Request", sender=os.getenv('EMAIL_USER'), recipients=[email])
-                msg.body = f"To confirm your email, click the following link: {confirm_url}\n\nIf you did not make this request, simply ignore this email and no changes will be made."
-
+                msg.html = f"""
+                    <html>
+                    <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+                        <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+                        <h2 style="text-align: center; color: #333;">Confirm Your Email Address</h2>
+                        <p style="font-size: 16px; color: #555;">
+                            Hello,
+                        </p>
+                        <p style="font-size: 16px; color: #555;">
+                            Thank you for signing up with SecureApp! To complete your registration, please confirm your email address by clicking the link below:
+                        </p>
+                        <p style="text-align: center;">
+                            <a href="{confirm_url}" style="display: inline-block; padding: 12px 24px; font-size: 16px; color: #ffffff; background-color: #007bff; border-radius: 4px; text-decoration: none;">Confirm Email</a>
+                        </p>
+                        <p style="font-size: 16px; color: #555;">
+                            If you did not make this request, simply ignore this email and no changes will be made.
+                        </p>
+                        <p style="font-size: 16px; color: #555;">
+                            Regards,<br>
+                            The SecureApp Team
+                        </p>
+                        </div>
+                    </body>
+                    </html>
+                """
                 try:
                     mail.send(msg)
                     response = generate_response(
@@ -153,17 +177,33 @@ def confirm_email(token):
             db.session.commit()
 
             # Send email with generated username
-            try:
+            try:          
                 msg = Message("Account Activated", sender=os.getenv('EMAIL_USER'), recipients=[email])
-                msg.body = (
-                            f"Dear {user.first_name},\n\n"
-                            "Congratulations!\n\n"
-                            "Your account has been successfully activated. Your username is: "
-                            f"{user.username}\n\n"
-                            "Thank you for registering with us. We're excited to have you on board!\n\n"
-                            "Best regards,\n"
-                            "The Team"
-                        )
+                msg.html = f"""
+                    <html>
+                        <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+                            <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+                                <h2 style="color: #333333; text-align: center;">Account Activated</h2>
+                                <p style="color: #555555; font-size: 16px;">
+                                    Dear <strong>{user.first_name}</strong>,
+                                </p>
+                                <p style="color: #555555; font-size: 16px;">
+                                    Congratulations! Your account has been successfully activated.
+                                </p>
+                                <p style="color: #555555; font-size: 16px;">
+                                    Your username is: <strong>{user.username}</strong>
+                                </p>
+                                <p style="color: #555555; font-size: 16px;">
+                                    Thank you for registering with us. We're excited to have you on board!
+                                </p>
+                                <p style="color: #555555; font-size: 16px;">
+                                    Best regards,<br>
+                                    <strong>The SecureApp Team</strong>
+                                </p>
+                            </div>
+                        </body>
+                    </html>
+                """
                 mail.send(msg)
 
                 response = generate_response(
@@ -216,13 +256,36 @@ def forgot_password():
                 token = s.dumps(email, salt=current_app.config['SECURITY_PASSWORD_SALT'])
                 reset_url = url_for('users.reset_password', token=token, _external=True)
                 msg = Message("Password Reset Request", sender=os.getenv('EMAIL_USER'), recipients=[email])
-                msg.body = (
-                            f"To reset your password, click the following link: {reset_url}\n\n"
-                            "If you did not request a password reset, please ignore this email. No changes will be made to your account.\n\n"
-                            "If you have any questions, feel free to contact our support team.\n\n"
-                            "Best regards,\n"
-                            "The Support Team"
-                        )
+                msg.html = f"""
+                    <html>
+                        <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+                            <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+                                <h2 style="color: #333333; text-align: center;">Password Reset Request</h2>
+                                <p style="color: #555555; font-size: 16px;">
+                                    To reset your password, click the button below:
+                                </p>
+                                <p style="text-align: center;">
+                                    <a href="{reset_url}" style="display: inline-block; padding: 10px 20px; font-size: 16px; color: #ffffff; background-color: #007bff; text-decoration: none; border-radius: 5px;">
+                                        Reset Password
+                                    </a>
+                                </p>
+                                <p style="color: #555555; font-size: 16px;">
+                                    If the button above doesn't work, you can also reset your password by clicking on the following link: <a href="{reset_url}" style="color: #007bff;">{reset_url}</a>
+                                </p>
+                                <p style="color: #555555; font-size: 16px;">
+                                    If you did not request a password reset, please ignore this email. No changes will be made to your account.
+                                </p>
+                                <p style="color: #555555; font-size: 16px;">
+                                    If you have any questions, feel free to contact our support team.
+                                </p>
+                                <p style="color: #555555; font-size: 16px;">
+                                    Best regards,<br>
+                                    <strong>The Support Team</strong>
+                                </p>
+                            </div>
+                        </body>
+                    </html>
+                """
                 try:
                     mail.send(msg)
                     response = generate_response(
@@ -307,6 +370,112 @@ def reset_password(token):
             return render_template('reset_password.html', response=response), HTTPStatus.INTERNAL_SERVER_ERROR
 
     return render_template('reset_password.html', response=response)
+   
+@users.route('/change_password', methods=['GET', 'POST'])
+def change_password():
+    response = generate_response()
+    # JWT verification
+    try:
+        access_token = session.get('access_token')
+        if not access_token:
+            response = generate_response(
+                status=HTTPStatus.UNAUTHORIZED,
+                message='Access token not found in session.'
+            )
+            return render_template('change_password.html', response=response), HTTPStatus.UNAUTHORIZED
+
+        try:
+            # Manually verify the JWT token from the session
+            verify_jwt_in_request(optional=True)
+            decoded_token = decode_token(access_token)
+        except Exception as e:
+            response = generate_response(
+                status=HTTPStatus.UNAUTHORIZED,
+                message='Invalid token or authentication required.'
+            )
+            return render_template('change_password.html', response=response), HTTPStatus.UNAUTHORIZED
+
+        # Get the current user identity
+        current_user_id = decoded_token['sub']
+        logger.info(f"current_user: {current_user_id}")
+    except Exception as e:
+        response = generate_response(
+            status=HTTPStatus.INTERNAL_SERVER_ERROR,
+            message='An error occurred during JWT verification.',
+            errors=str(e)
+        )
+        logger.error(f"Exception occurred during JWT verification: {str(e)}")
+        return render_template('change_password.html', response=response), HTTPStatus.INTERNAL_SERVER_ERROR
+
+    if request.method == 'POST':
+        try:
+            current_password = request.form.get('current_password')
+            new_password = request.form.get('new_password')
+            confirm_new_password = request.form.get('confirm_new_password')
+
+            # Check for missing data
+            if not current_password or not new_password or not confirm_new_password:
+                print(True)
+                response = generate_response(
+                    status=HTTPStatus.BAD_REQUEST,
+                    message='Missing required fields.'
+                )
+                return render_template('change_password.html', response=response), HTTPStatus.BAD_REQUEST
+            
+            user = get_user_by_id(current_user_id['id'])
+            # user = User.query.filter_by(id=current_user_id['id']).first_or_404()
+            # Check if user exists and current password is correct
+            if user and bcrypt.check_password_hash(user.password, current_password):
+                print("if the current password and new password")
+                # Validate new password strength
+                if not validate_password_strength(new_password):
+                    response = generate_response(
+                        status=HTTPStatus.BAD_REQUEST,
+                        message='New password does not meet strength requirements.'
+                    )
+                    return render_template('change_password.html', response=response), HTTPStatus.BAD_REQUEST
+                
+                # Check if new password and confirm password match
+                if new_password != confirm_new_password:
+                    response = generate_response(
+                        status=HTTPStatus.BAD_REQUEST,
+                        message='New password and confirm password do not match.'
+                    )
+                    return render_template('change_password.html', response=response), HTTPStatus.BAD_REQUEST
+                
+                # Update user password
+                if update_user_password(user, new_password):
+                    response = generate_response(
+                        success=True,
+                        status=HTTPStatus.OK,
+                        message='Password changed successfully.'
+                    )
+                    logger.info(f"Password changed successfully for user {current_user_id}.")
+                    return render_template('change_password.html', response=response), HTTPStatus.OK
+                else:
+                    response = generate_response(
+                        status=HTTPStatus.INTERNAL_SERVER_ERROR,
+                        message='An error occurred while updating the password.'
+                    )
+                    logger.error(f"Failed to update password for user {current_user_id}.")
+                    return render_template('change_password.html', response=response), HTTPStatus.INTERNAL_SERVER_ERROR
+            else:
+                response = generate_response(
+                    status=HTTPStatus.UNAUTHORIZED,
+                    message='Current password is incorrect.'
+                )
+                logger.warning(f"Invalid current password attempt for user {current_user_id}.")
+                return render_template('change_password.html', response=response), HTTPStatus.UNAUTHORIZED
+        except Exception as e:
+            response = generate_response(
+                status=HTTPStatus.INTERNAL_SERVER_ERROR,
+                message='An error occurred during the password change process.',
+                errors=str(e)
+            )
+            logger.error(f"Exception occurred during password change: {str(e)}")
+            return render_template('change_password.html', response=response), HTTPStatus.INTERNAL_SERVER_ERROR
+    
+    return render_template('change_password.html', response=response), HTTPStatus.OK
 
 
 @users.route('/login', methods=['POST', 'GET'])
@@ -350,12 +519,35 @@ def login():
                     db.session.commit()
 
                     msg = Message("Email Confirmation OTP", sender=os.getenv('EMAIL_USER'), recipients=[email])
-                    msg.body = (
-                                f"Your OTP for email verification is: {otp}\n\n"
-                                "If you did not request this OTP, please disregard this email. No changes will be made to your account.\n\n"
-                                "Thank you,\n"
-                                "The Team"
-                            )
+                    msg.html = f"""
+                            <html>
+                                <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+                                    <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+                                        <h2 style="color: #333333; text-align: center;">Email Confirmation OTP</h2>
+                                        <p style="color: #555555; font-size: 16px; text-align: center;">
+                                            Your OTP for email verification is:
+                                        </p>
+                                        <div style="text-align: center; margin: 20px 0;">
+                                            <div style="display: inline-block; background-color: #007bff; color: #ffffff; padding: 15px 20px; border-radius: 5px;">
+                                                <h1 style="margin: 0; font-size: 36px;">{otp}</h1>
+                                            </div>
+                                        </div>
+                                        <p style="color: #555555; font-size: 16px; text-align: center;">
+                                            <span style="display: inline-block; vertical-align: middle;">
+                                                
+                                            This OTP will expire in <strong>10 minutes</strong>.
+                                        </p>
+                                        <p style="color: #555555; font-size: 16px; text-align: center;">
+                                            If you did not request this OTP, please disregard this email. No changes will be made to your account.
+                                        </p>
+                                        <p style="color: #555555; font-size: 16px; text-align: center;">
+                                            Thank you,<br>
+                                            <strong>The SecureApp Team</strong>
+                                        </p>
+                                    </div>
+                                </body>
+                            </html>
+                        """
                     mail.send(msg)
 
                     # flash('A confirmation email has been sent with an OTP.', 'info')
@@ -380,7 +572,6 @@ def login():
     return render_template('login.html'), HTTPStatus.OK
 
 
-
 @users.route('/verify_otp', methods=['POST', 'GET'])
 def verify_otp():
     if request.method == 'POST':
@@ -393,27 +584,24 @@ def verify_otp():
                     'status': 'danger',
                     'message': 'Missing required fields.'
                 }
-                return render_template('verify_otp.html', response=response, user_id=user_id), HTTPStatus.BAD_REQUEST
+                return render_template('verify_otp.html', response=response, user_id=user_id, username=session.get('username')), HTTPStatus.BAD_REQUEST
 
             otp_hash = hashlib.sha256(str(otp).encode()).hexdigest()
             otp_entry = OTP.query.filter_by(user_id=user_id).first()
 
             if otp_entry:
-                # Update the existing OTP entry
                 otp_entry.otp = otp_hash
                 otp_entry.created_at = datetime.utcnow()
             else:
-                # Create a new OTP entry
                 otp_entry = OTP(user_id=user_id, otp=otp_hash, created_at=datetime.utcnow())
                 db.session.add(otp_entry)
 
             db.session.commit()
 
-            # Validate OTP
             if otp_entry and (datetime.utcnow() - otp_entry.created_at) < timedelta(minutes=10):
                 user = User.query.get(user_id)
                 access_token = create_access_token(
-                    identity={'id': user.id, 'email': user.email},
+                    identity={'id': user.id, 'email': user.email, 'username': user.username},
                     expires_delta=timedelta(hours=24)
                 )
                 session['access_token'] = access_token
@@ -426,7 +614,7 @@ def verify_otp():
                     'status': 'danger',
                     'message': 'Invalid OTP or OTP has expired.'
                 }
-                return render_template('verify_otp.html', response=response, user_id=user_id), HTTPStatus.UNAUTHORIZED
+                return render_template('verify_otp.html', response=response, user_id=user_id, username=session.get('username')), HTTPStatus.UNAUTHORIZED
 
         except Exception as e:
             response = {
@@ -434,55 +622,24 @@ def verify_otp():
                 'message': 'An error occurred during OTP verification.',
                 'errors': str(e)
             }
-            return render_template('verify_otp.html', response=response, user_id=user_id), HTTPStatus.INTERNAL_SERVER_ERROR
+            return render_template('verify_otp.html', response=response, user_id=user_id, username=session.get('username')), HTTPStatus.INTERNAL_SERVER_ERROR
 
     user_id = request.args.get('user_id')
     if user_id:
-        # Retrieve the user by user_id
         user = User.query.get(user_id)
         if user:
-            # Store the email in the session
             session['user_email'] = user.email
+            session['username'] = user.username
+            print(f"DEBUG: Retrieved username: {user.username}")  # Debug statement
+
         else:
             flash('User not found.', 'danger')
             return redirect(url_for('users.login'))
 
     session['user_id'] = user_id
-    return render_template('verify_otp.html', user_id=user_id), HTTPStatus.OK
-
-
-
-
-# @users.route('/capture_face', methods=['POST'])
-# def capture_face():
-#     try:
-#         user_id = request.form.get('user_id')
-#         face_image = request.files.get('face_image')
-        
-#         # Process the face image and encode it
-#         encoded_face = encode_face(face_image)
-        
-#         # Store the encoded face in the database
-#         user = get_user_by_id(user_id)
-#         if user:
-#             user.face_encoding = encoded_face
-#             user.is_active = True
-#             db.session.commit()
-#             return redirect(url_for('users.login'))
-#         else:
-#             response = generate_response(
-#                 status=HTTPStatus.NOT_FOUND,
-#                 message='User does not exist.'
-#             )
-#             return render_template('face_capture.html', response=response), HTTPStatus.NOT_FOUND
-#     except Exception as e:
-#         logger.exception("Exception occurred during face capture.")
-#         response = generate_response(
-#             status=HTTPStatus.INTERNAL_SERVER_ERROR,
-#             message='An error occurred during face capture.',
-#             errors=str(e)
-#         )
-#         return render_template('face_capture.html', response=response), HTTPStatus.INTERNAL_SERVER_ERROR
+    username = session.get('username')
+    email_id = session.get('user_email')
+    return render_template('verify_otp.html', user_id=user_id, username=username, email=email_id), HTTPStatus.OK
 
 nimgs = 15
 
@@ -544,7 +701,7 @@ def add():
                 if j == nimgs * 5:
                     break
 
-                cv2.imshow('Adding new User', frame)
+                cv2.imshow('Register the user face', frame)
                 if cv2.waitKey(1) == 27:  # Exit on 'ESC' key
                     break
 
@@ -585,8 +742,6 @@ def add():
             ), HTTPStatus.INTERNAL_SERVER_ERROR
 
     return render_template('face_capture.html'), HTTPStatus.OK
-
-
 
 @users.route('/start', methods=['GET', 'POST'])
 def start():
@@ -633,7 +788,7 @@ def start():
                     recognized = True
                     break
                 
-                cv2.imshow('Attendance', frame)
+                cv2.imshow('Face verificatuion', frame)
                 if cv2.waitKey(1) == 27:  # ESC key pressed
                     break
 
@@ -658,163 +813,7 @@ def start():
             flash('Invalid email or password. Please try again.', 'danger')
             return redirect(url_for('users.start'))
 
-    return render_template('login_with_face.html')  # Assuming there's a login.html for the login form
-
-# @users.route('/start', methods=['GET'])
-# def start():
-#     first_names, last_names, contact_nos, times, l = extract_attendance()
-
-#     if 'face_recognition_model.pkl' not in os.listdir('static'):
-#         return render_template(
-#             'home.html', 
-#             first_names=first_names, 
-#             last_names=last_names, 
-#             contact_nos=contact_nos, 
-#             times=times, 
-#             l=l, 
-#             totalreg=totalreg(), 
-#             datetoday2=datetoday2, 
-#             mess='There is no trained model in the static folder. Please add a new face to continue.'
-#         )
-
-#     ret = True
-#     cap = cv2.VideoCapture(0)
-#     while ret:
-#         ret, frame = cap.read()
-#         faces = extract_faces(frame)
-#         if len(faces) > 0:
-#             (x, y, w, h) = faces[0]
-#             cv2.rectangle(frame, (x, y), (x+w, y+h), (86, 32, 251), 1)
-#             cv2.rectangle(frame, (x, y), (x+w, y-40), (86, 32, 251), -1)
-#             face = cv2.resize(frame[y:y+h, x:x+w], (50, 50))
-#             identified_person = identify_face(face.reshape(1, -1))[0]
-
-#             # Handle multiple underscores in the identified person string
-#             parts = identified_person.split('_')
-#             if len(parts) > 1:
-#                 first_name = ' '.join(parts[:-1])  # Join all parts except the last as first name
-#                 last_name = parts[-1]  # Last part as last name
-#             else:
-#                 first_name = identified_person
-#                 last_name = ''
-
-#             # Add attendance using first_name and last_name
-#             add_attendance(f'{first_name}_{last_name}', '', '', '')
-
-#             cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 0, 255), 1)
-#             cv2.rectangle(frame, (x, y), (x+w, y+h), (50, 50, 255), 2)
-#             cv2.rectangle(frame, (x, y-40), (x+w, y), (50, 50, 255), -1)
-#             cv2.putText(frame, f'{identified_person}', (x, y-15), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 1)
-#             cv2.rectangle(frame, (x, y), (x+w, y+h), (50, 50, 255), 1)
-        
-#         imgBackground[162:162 + 480, 55:55 + 640] = frame
-#         cv2.imshow('Attendance', imgBackground)
-#         if cv2.waitKey(1) == 27:
-#             break
-#     cap.release()
-#     cv2.destroyAllWindows()
-
-#     first_names, last_names, contact_nos, times, l = extract_attendance()
-#     return render_template(
-#         'home.html', 
-#         first_names=first_names, 
-#         last_names=last_names, 
-#         contact_nos=contact_nos, 
-#         times=times, 
-#         l=l, 
-#         totalreg=totalreg(), 
-#         datetoday2=datetoday2
-#     )
-# @users.route('/login', methods=['POST', 'GET'])
-# def login():
-#     if request.method == 'POST':
-#         logger.info("Entered login POST method")
-#         response = generate_response()
-#         try:
-#             email = request.form.get('email')
-#             password = request.form.get('password')
-#             logger.info(f"Received email: {email} and password")
-
-#             if not email or not password:
-#                 response = generate_response(
-#                     status=HTTPStatus.BAD_REQUEST,
-#                     message='Missing required fields.'
-#                 )
-#                 return render_template('login.html', response=response), HTTPStatus.BAD_REQUEST
-
-#             if not validate_email_format(email):
-#                 response = generate_response(
-#                     status=HTTPStatus.BAD_REQUEST,
-#                     message='Invalid email format.'
-#                 )
-#                 return render_template('login.html', response=response), HTTPStatus.BAD_REQUEST
-
-#             user = User.query.filter_by(email=email).first()
-#             if user and bcrypt.check_password_hash(user.password, password):
-#                 if user:
-#                     otp = random.randint(100000, 999999)
-#                     otp_entry = OTP(user_id=user.id, otp=otp, created_at=datetime.utcnow())
-#                     db.session.add(otp_entry)
-#                     db.session.commit()
-
-#                     msg = Message("Email Confirmation OTP", sender="sheetaljain756@gmail.com", recipients=[email])
-#                     msg.body = f"Your OTP for email verification is: {otp}\n\nIf you did not make this request, simply ignore this email."
-#                     mail.send(msg)
-
-#                     flash('A confirmation email has been sent with an OTP.', 'info')
-#                     return redirect(url_for('users.verify_otp', user_id=user.id))
-
-#                 access_token = create_access_token(
-#                     identity={'id': user.id, 'email': user.email},
-#                     expires_delta=timedelta(hours=24)  
-#                 )
-#                 session['access_token'] = access_token
-#                 response = generate_response(
-#                     success=True,
-#                     status=HTTPStatus.OK,
-#                     message='Login successful.'
-#                 )
-#                 logger.info(f"User {user.email} logged in successfully.")
-#                 return redirect(url_for('users.verify_otp'))
-#             else:
-#                 response = generate_response(
-#                     status=HTTPStatus.UNAUTHORIZED,
-#                     message='Login Unsuccessful. Please check email and password.'
-#                 )
-#                 logger.warning(f"Failed login attempt for email {email}.")
-#                 return render_template('login.html', response=response), HTTPStatus.UNAUTHORIZED
-#         except Exception as e:
-#             response = generate_response(
-#                 status=HTTPStatus.INTERNAL_SERVER_ERROR,
-#                 message='An error occurred during login.',
-#                 errors=str(e)
-#             )
-#             logger.error(f"Exception occurred during login: {str(e)}")
-#             return render_template('login.html', response=response), HTTPStatus.INTERNAL_SERVER_ERROR
-
-#     return render_template('login.html'), HTTPStatus.OK
-
-
-# @users.route('/verify_otp', methods=['GET', 'POST'])
-# def verify_otp():
-#     if request.method == 'POST':
-#         otp = request.form.get('otp')
-#         user_id = request.form.get('user_id')
-        
-#         otp_entry = OTP.query.filter_by(user_id=user_id, otp=otp).first()
-#         if otp_entry and otp_entry.created_at > datetime.utcnow() - timedelta(minutes=10):
-#             user = User.query.get(user_id)
-#             user.is_active = True
-#             db.session.commit()
-#             flash('Your email has been confirmed!', 'success')
-#             return redirect(url_for('users.home'))
-#         else:
-#             flash('Invalid or expired OTP.', 'danger')
-#             return render_template('verify_otp.html', user_id=user_id)
-
-#     return render_template('verify_otp.html')
-
-
+    return render_template('login_with_face.html')  #
 
 @users.route('/home')
 def home():
@@ -847,21 +846,23 @@ def home():
             )
             return render_template('login.html', response=response), HTTPStatus.UNAUTHORIZED
         
-        role = current_user.get('role')
         user_id = current_user.get('id')
-        return render_template('home.html')
+        email_id = session.get("user_email")
+        username = session.get('username')
+        print(f"home:page {username}")
+        return render_template('home.html',username=username,email_id=email_id)
 
     except Exception as e:
         return render_template('login.html', response=response), HTTPStatus.UNAUTHORIZED
     
-
-
-#============================================================
+#====================================================================================================
 
 @users.route('/encrypt', methods=['GET', 'POST'])
 def encrypt():
     user_id = session.get('user_id')
     user_email = session.get('user_email')
+    username = session.get('username')
+    email_id = session.get('user_email')
     recieved_files = EncryptedFile.query.filter_by(email=user_email).all()
 
     # Print the filenames (for debugging purposes)
@@ -889,9 +890,7 @@ def encrypt():
             status = HTTPStatus.NOT_FOUND
             return render_template('encrypt.html', email_verified=False, files=files, message=message, status=status)
 
-    return render_template('encrypt.html', email_verified=False, files=files, message=message, status=status)
-
-
+    return render_template('encrypt.html', email_verified=False, files=files, message=message, status=status,username=username,email_id=email_id)
 
 @users.route('/upload', methods=['POST'])
 def upload():
@@ -1054,27 +1053,29 @@ def upload():
 @users.route('/decrypt', methods=['GET', 'POST'])
 def decrypt():
     user_id = session.get('user_id')
-    user_email = session.get('user_email')
+    username = session.get('username')
+    email_id = session.get('user_email')
 
     # Retrieve the received files for the user
-    received_files = EncryptedFile.query.filter_by(email=user_email).all()
+    received_files = EncryptedFile.query.filter_by(email=email_id).all()
 
     # Check if any files are available for decryption
     if received_files:
         # Decrypt each file and pass them to the template
         for file in received_files:
             try:
-                decrypt_file()  # Ensure you're passing the correct file to the decryption function
+                #decrypt_file() # Ensure you're passing the correct file to the decryption function
+                pass
             except Exception as e:
                 # Log the error or handle it appropriately
                 print(f"Error decrypting file {file.filename}: {e}")
 
         # Pass the list of decrypted files to the template
-        return render_template('decrypt.html', email_verified=True, files=received_files)
+        return render_template('decrypt.html', email_verified=True, files=received_files,username=username,email_id=email_id)
     else:
         # No files found for the user
         return render_template('decrypt.html', email_verified=False, files=[])
-
+    
 @users.route('/process_decryption', methods=['POST'])
 def process_decryption():
     symmetric_key = request.form.get('symmetric_key')
@@ -1088,17 +1089,78 @@ def process_decryption():
         # Read the encrypted file content
         encrypted_file_content = uploaded_file.read()
 
-        # Decrypt the file
+        # Decrypt the file content
         decrypted_file_content = decrypt_files(encrypted_file_content, symmetric_key)
 
-        # Save the decrypted file temporarily to a location
-        decrypted_file_path = os.path.join(os.getenv('decrypted_file_path'), 'decrypted_file.pdf')
+        # Determine the original file extension from the uploaded file name
+        original_filename = uploaded_file.filename
+        if original_filename.endswith('.enc'):
+            # Assume the original extension was stored in the file name before .enc
+            base_filename = original_filename[:-4]  # Remove the ".enc" extension
+            original_extension = os.path.splitext(base_filename)[1]  # Extract the original extension
+        else:
+            # If no original extension is found, use a default or handle as needed
+            original_extension = ''
+        # Save the decrypted file with the original extension
+        decrypted_file_path = os.path.join(os.getenv('decrypted_file_path'), f'decrypted_file{original_extension}')
         with open(decrypted_file_path, 'wb') as f:
             f.write(decrypted_file_content)
 
-        # Allow the user to download the decrypted file
-        return send_file(decrypted_file_path, as_attachment=True, download_name='decrypted_file.pdf')
+        # Return the decrypted file as a response
+        return send_file(
+            decrypted_file_content,
+            as_attachment=True,
+            download_name=f'decrypted_file{original_extension}'
+        )
+    except Exception as e:
+        flash(f"Error during decryption: {str(e)}", "error")
+        return redirect(url_for('users.decrypt'))
+
+
+#==================================================================================================================
+revoked_tokens = set()
+
+@users.route('/logout', methods=['GET'])
+def logout():
+    try:
+        access_token = session.get('access_token')
+        if not access_token:
+            response = generate_response(
+                status=HTTPStatus.UNAUTHORIZED,
+                message='You need to login first!'
+            )
+            return render_template('login.html', response=response), HTTPStatus.UNAUTHORIZED
+
+        # Verify and decode the JWT token
+        verify_jwt_in_request(optional=True)
+        decoded_token = decode_token(access_token)
+        current_user = decoded_token.get('sub')
+
+        if not current_user:
+            response = generate_response(
+                status=HTTPStatus.UNAUTHORIZED,
+                message='Authentication required.'
+            )
+            return render_template('login.html', response=response), HTTPStatus.UNAUTHORIZED
+
+        # Get the JWT ID (jti) from the current token
+        jti = get_jwt().get('jti')
+        print(200*"8")
+
+        # Check if the token is already revoked
+        if jti in revoked_tokens:
+            return render_template('login.html', success=False, status=HTTPStatus.BAD_REQUEST, message='Token has already been revoked.'), HTTPStatus.BAD_REQUEST
+
+        # Add the token to the blacklist
+        revoked_tokens.add(jti)
+        logger.info(f"Token {jti} successfully added to blacklist.")
+
+        # Clear the session
+        session.pop('access_token', None)
+
+        return redirect(url_for('users.login'))
 
     except Exception as e:
-        flash(f"Error during decryption: {e}", "error")
-        return redirect(url_for('users.decrypt'))
+        logger.error(f"Exception occurred during logout: {str(e)}")
+        return render_template('login.html', success=False, status=HTTPStatus.INTERNAL_SERVER_ERROR, message='An error occurred while logging out.', errors={'general': str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
+#================================================================================================================================

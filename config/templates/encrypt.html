@@ -4,175 +4,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/encryption_decrypt.css') }}">
     <title>Secure Messaging and File Sharing</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-        }
-
-        header {
-            background-color: #8B4513;
-            color: #fff;
-            padding: 1rem;
-            text-align: right;
-        }
-
-        nav ul {
-            list-style-type: none;
-            margin: 0;
-            padding: 0;
-        }
-
-        nav ul li {
-            display: inline;
-            margin-right: 20px;
-        }
-
-        nav ul li a {
-            color: #fff;
-            text-decoration: none;
-        }
-
-        nav ul li a:hover {
-            text-decoration: underline;
-        }
-
-        h1 {
-            text-align: center;
-            margin: 0;
-            padding: 1rem;
-        }
-
-        .container {
-            max-width: 1000px;
-            margin: 2rem auto;
-            padding: 1rem;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-
-        form {
-            margin-bottom: 2rem;
-        }
-
-        label {
-            display: block;
-            margin-bottom: .5rem;
-        }
-
-        input[type="email"],
-        input[type="file"] {
-            width: 100%;
-            padding: .5rem;
-            margin-bottom: 1rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        button {
-            padding: .5rem 1rem;
-            background-color: #333;
-            color: #fff;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background-color: #555;
-        }
-
-        .flash-messages {
-            list-style-type: none;
-            padding: 0;
-        }
-
-        .flash-messages li {
-            margin-bottom: .5rem;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 2rem;
-        }
-
-        table,
-        th,
-        td {
-            border: 1px solid #ddd;
-        }
-
-        th,
-        td {
-            padding: .75rem;
-            text-align: left;
-        }
-
-        th {
-            background-color: #f4f4f4;
-        }
-
-        .alert {
-            padding: 15px;
-            margin-bottom: 20px;
-            border: 1px solid transparent;
-            border-radius: 4px;
-            font-family: Arial, sans-serif;
-            /* Optional: Add font styling */
-            font-size: 16px;
-            /* Optional: Add font size */
-        }
-
-        .alert-success {
-            color: #155724;
-            /* Dark green text */
-            background-color: #d4edda;
-            /* Light green background */
-            border-color: #c3e6cb;
-            /* Green border */
-        }
-
-        .alert-danger {
-            color: #721c24;
-            /* Dark red text */
-            background-color: #f8d7da;
-            /* Light red background */
-            border-color: #f5c6cb;
-            /* Red border */
-        }
-    </style>
 </head>
 
-<body>
-    <header>
-        <nav>
-            <ul>
-                <li><a href="#">Instructions</a></li>
-                <li><a href="#">Encryption Chat</a></li>
-                <li><a href="#">Decryption Chat</a></li>
-                <li><a href="#">Additional Features</a></li>
-                <li><a href="#">About Us</a></li>
-                <li><a href="#">Services</a></li>
-            </ul>
-        </nav>
-        <h1>Secure Messaging and File Sharing</h1>
-    </header>
+<body> <!-- Navbar -->
+<div class="navbar">
+    <a class="navbar-brand" href="#">
+        <img src="https://cdn-icons-png.flaticon.com/512/8676/8676282.png" alt="SecureApp Logo" style="height: 40px;">
+        SecureApp
+    </a>
+    <button class="navbar-toggler" onclick="toggleNavbar()">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <ul class="navbar-nav ml-auto">
+        <li class="nav-item">
+            <a class="nav-link" href="/home">Home</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="/encrypt">Encryption File</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="/decrypt">Decryption File</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="/chat">Chat with Friend</a>
+        </li>
+        <li class="nav-item dropdown">
+            <a class="nav-link" href="#" id="profile-link" onclick="openProfileModal()">Profile</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="/logout">Logout</a>
+        </li>
+    </ul>
+</div>
 
+      <!-- Header Section -->
+      <div class="header">
+          <h1>Secure Messaging and File Sharing</h1>
+      </div>
+  </div>
+
+  <div class="content-wrapper">
     <div class="container">
-
-
         {% if message %}
-        <div class="alert {% if status == 200 %}alert-success{% else %}alert-danger{% endif %}">
+        <div style="padding: 10px; border-radius: 5px; 
+                    {% if status == 200 %}
+                        background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;
+                    {% else %}
+                        background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;
+                    {% endif %}">
             {{ message }}
         </div>
-        {% endif %}
-
+    {% endif %}    
         {% if email_verified %}
         <form method="POST" enctype="multipart/form-data" action="/upload">
             <input type="hidden" name="email" value="{{ email }}">
@@ -187,6 +71,9 @@
             <button type="submit">Verify Email</button>
         </form>
         {% endif %}
+        
+          <!-- Loader -->
+          <div id="loader" class="loader"></div>
 
         <table>
             <thead>
@@ -210,6 +97,67 @@
             </tbody>
         </table>
     </div>
+</div>
+    <div class="footer">
+        <p>&copy; 2024 SecureApp. All rights reserved.</p>
+      </div>
+     <!-- Profile Popup -->
+   <div id="profileModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <div class="profile-info">
+        <h4>Username</h4>
+        <p>{{ username }}</p>
+      </div>
+      <div class="profile-info">
+        <h4>Email</h4>
+        <p>{{ email_id }}</p>
+      </div>
+      <a href='/change_password' class="btn-change-password" style="text-decoration: none;">Change Password</a>
+    </div>
+  </div>
+    <script>
+        document.querySelectorAll('.nav-link').forEach(anchor => {
+          anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href').substring(1);
+            document.getElementById(targetId).scrollIntoView({ behavior: 'smooth' });
+          });
+        });
+    
+        // Profile Modal Script
+        var modal = document.getElementById("profileModal");
+        var btn = document.getElementById("profile-link");
+        var span = document.getElementsByClassName("close")[0];
+    
+        btn.onclick = function() {
+          modal.style.display = "block";
+        }
+    
+        span.onclick = function() {
+          modal.style.display = "none";
+        }
+    
+        window.onclick = function(event) {
+          if (event.target == modal) {
+            modal.style.display = "none";
+          }
+        }
+      </script>
+      
+  <!-- Show Loader on Form Submission -->
+  <script>
+    document.querySelector('form').addEventListener('submit', function() {
+      document.getElementById('loader').style.display = 'block';
+    });
+  </script>
+
+  <script>
+    function toggleNavbar() {
+        const nav = document.querySelector('.navbar-nav');
+        nav.classList.toggle('active');
+    }
+</script>
 </body>
 
 </html>

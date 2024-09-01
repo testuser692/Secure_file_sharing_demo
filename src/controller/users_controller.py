@@ -16,7 +16,10 @@ from datetime import datetime, date
 from cryptography.fernet import Fernet
 from email.message import EmailMessage
 from werkzeug.utils import secure_filename
+from cryptography.hazmat.primitives import padding
 from sklearn.neighbors import KNeighborsClassifier
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 
 load_dotenv()
@@ -224,31 +227,6 @@ def train_model():
     knn.fit(faces, labels)
     joblib.dump(knn, 'static/face_recognition_model.pkl')
 
-# def train_model(faces_captured):
-#     faces = []
-#     labels = []
-#     userlist = os.listdir('static/faces')
-    
-#     # Process previously stored faces
-#     for user in userlist:
-#         for imgname in os.listdir(f'static/faces/{user}'):
-#             img = cv2.imread(f'static/faces/{user}/{imgname}')
-#             resized_face = cv2.resize(img, (50, 50))
-#             faces.append(resized_face.ravel())
-#             labels.append(user)
-    
-#     # Process the new faces captured during registration
-#     for face_img in faces_captured:
-#         resized_face = cv2.resize(face_img, (50, 50))
-#         faces.append(resized_face.ravel())
-#         labels.append('new_user')  # Replace with the actual user label if available
-    
-#     faces = np.array(faces)
-#     knn = KNeighborsClassifier(n_neighbors=5)
-#     knn.fit(faces, labels)
-#     return knn
-
-
 def extract_biometric_data():
     df = pd.read_csv(f'BiometricData/BiometricData-{datetoday}.csv')
     first_names = df['First Name']
@@ -314,7 +292,6 @@ if f'BiometricData-{datetoday}.csv' not in os.listdir('BiometricData'):
     with open(f'BiometricData/BiometricData-{datetoday}.csv', 'w') as f:
         f.write('First Name,Last Name,Email,Contact No,Password,Time\n')
 
-
 #===============================================================
 SYMMETRIC_KEY_STORE = {}
 # Generate a symmetric key for AES encryption
@@ -351,7 +328,7 @@ def send_html_email_with_attachment(sender_email, sender_password, receiver_emai
 
     msg.add_attachment(attachment_content, maintype=mime_type, subtype=mime_subtype, filename=attachment_name)
 
-    with smtplib.SMTP('smtp.office365.com', 587) as smtp:
+    with smtplib.SMTP('smtp.gmail.com', 587) as smtp:
         smtp.starttls()
         smtp.login(sender_email, sender_password)
         smtp.send_message(msg)
@@ -377,3 +354,33 @@ def decrypt_files(encrypted_file_content, symmetric_key):
     # Decrypt the file content
     decrypted_file_content = fernet.decrypt(encrypted_file_content)
     return decrypted_file_content
+
+
+
+def encrypt_message(key, plaintext):
+    iv = os.urandom(16)  # Initialization Vector
+    cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
+    encryptor = cipher.encryptor()
+
+    # Padding the plaintext to be a multiple of block size
+    padder = padding.PKCS7(algorithms.AES.block_size).padder()
+    padded_data = padder.update(plaintext.encode()) + padder.finalize()
+
+    ciphertext = encryptor.update(padded_data) + encryptor.finalize()
+    return base64.b64encode(iv + ciphertext).decode()
+
+def decrypt_message(key, ciphertext):
+    ciphertext = base64.b64decode(ciphertext.encode())
+    iv = ciphertext[:16]
+    actual_ciphertext = ciphertext[16:]
+
+    cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
+    decryptor = cipher.decryptor()
+
+    decrypted_padded_data = decryptor.update(actual_ciphertext) + decryptor.finalize()
+
+    # Removing padding
+    unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder()
+    decrypted_data = unpadder.update(decrypted_padded_data) + unpadder.finalize()
+
+    return decrypted_data.decode()
