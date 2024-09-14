@@ -327,8 +327,8 @@ def send_html_email_with_attachment(sender_email, sender_password, receiver_emai
         mime_type, mime_subtype = mime_type.split('/')
 
     msg.add_attachment(attachment_content, maintype=mime_type, subtype=mime_subtype, filename=attachment_name)
-
-    with smtplib.SMTP('smtp.gmail.com', 587) as smtp:
+    MAIL_SERVER = os.getenv('MAIL_SERVER')
+    with smtplib.SMTP(MAIL_SERVER, 587) as smtp:
         smtp.starttls()
         smtp.login(sender_email, sender_password)
         smtp.send_message(msg)

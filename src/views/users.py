@@ -572,12 +572,14 @@ def login():
     return render_template('login.html'), HTTPStatus.OK
 
 
+
 @users.route('/verify_otp', methods=['POST', 'GET'])
 def verify_otp():
     if request.method == 'POST':
         try:
             user_id = request.form.get('user_id')
             otp = request.form.get('otp')
+            print(f"Received OTP: {otp}")
 
             if not otp:
                 response = {
@@ -586,19 +588,25 @@ def verify_otp():
                 }
                 return render_template('verify_otp.html', response=response, user_id=user_id, username=session.get('username')), HTTPStatus.BAD_REQUEST
 
+            # Hash the entered OTP
             otp_hash = hashlib.sha256(str(otp).encode()).hexdigest()
-            otp_entry = OTP.query.filter_by(user_id=user_id).first()
+            print(f"Hashed OTP: {otp_hash}")
 
-            if otp_entry:
-                otp_entry.otp = otp_hash
-                otp_entry.created_at = datetime.utcnow()
-            else:
-                otp_entry = OTP(user_id=user_id, otp=otp_hash, created_at=datetime.utcnow())
-                db.session.add(otp_entry)
+            # Fetch all OTP entries from the database
+            otp_entries = OTP.query.filter_by(user_id=user_id).all()
+            print(f"Number of OTP Entries Found: {len(otp_entries)}")
 
-            db.session.commit()
+            otp_valid = False
+            for otp_entry in otp_entries:
+                print(f"Stored OTP Hash: {otp_entry.otp}")
+                print(f"Stored OTP Created At: {otp_entry.created_at}")
 
-            if otp_entry and (datetime.utcnow() - otp_entry.created_at) < timedelta(minutes=10):
+                # Check if the OTP hash matches and if it is within the valid time limit
+                if otp_entry.otp == otp_hash and (datetime.utcnow() - otp_entry.created_at) < timedelta(minutes=10):
+                    otp_valid = True
+                    break
+
+            if otp_valid:
                 user = User.query.get(user_id)
                 access_token = create_access_token(
                     identity={'id': user.id, 'email': user.email, 'username': user.username},
@@ -608,7 +616,6 @@ def verify_otp():
 
                 flash('Login successful.', 'success')
                 return redirect(url_for('users.home'))
-
             else:
                 response = {
                     'status': 'danger',
@@ -624,6 +631,7 @@ def verify_otp():
             }
             return render_template('verify_otp.html', response=response, user_id=user_id, username=session.get('username')), HTTPStatus.INTERNAL_SERVER_ERROR
 
+    # Handle GET request
     user_id = request.args.get('user_id')
     if user_id:
         user = User.query.get(user_id)
@@ -631,7 +639,6 @@ def verify_otp():
             session['user_email'] = user.email
             session['username'] = user.username
             print(f"DEBUG: Retrieved username: {user.username}")  # Debug statement
-
         else:
             flash('User not found.', 'danger')
             return redirect(url_for('users.login'))
@@ -640,6 +647,8 @@ def verify_otp():
     username = session.get('username')
     email_id = session.get('user_email')
     return render_template('verify_otp.html', user_id=user_id, username=username, email=email_id), HTTPStatus.OK
+
+
 
 nimgs = 15
 
@@ -947,6 +956,7 @@ def upload():
 
         # Encrypt the file content
         symmetric_key = generate_symmetric_key()
+        decoded_key = symmetric_key.decode('utf-8')
         encrypted_content = encrypt_file(file_content, symmetric_key)
 
         # Save the encrypted content back to a file in the directory
@@ -1025,7 +1035,7 @@ def upload():
                         <p>Your file has been successfully encrypted and attached to this email.</p>
                         <p>Here is your symmetric encryption key for decryption:</p>
                         <div class="key">
-                            {symmetric_key}
+                            {decoded_key}
                         </div>
                     </div>
                     <footer>
@@ -1076,6 +1086,7 @@ def decrypt():
         # No files found for the user
         return render_template('decrypt.html', email_verified=False, files=[])
     
+    
 @users.route('/process_decryption', methods=['POST'])
 def process_decryption():
     symmetric_key = request.form.get('symmetric_key')
@@ -1088,10 +1099,10 @@ def process_decryption():
     try:
         # Read the encrypted file content
         encrypted_file_content = uploaded_file.read()
-
+    
         # Decrypt the file content
         decrypted_file_content = decrypt_files(encrypted_file_content, symmetric_key)
-
+        
         # Determine the original file extension from the uploaded file name
         original_filename = uploaded_file.filename
         if original_filename.endswith('.enc'):
@@ -1101,20 +1112,23 @@ def process_decryption():
         else:
             # If no original extension is found, use a default or handle as needed
             original_extension = ''
+
         # Save the decrypted file with the original extension
         decrypted_file_path = os.path.join(os.getenv('decrypted_file_path'), f'decrypted_file{original_extension}')
         with open(decrypted_file_path, 'wb') as f:
             f.write(decrypted_file_content)
 
-        # Return the decrypted file as a response
+        # Return the decrypted file as a response using io.BytesIO
         return send_file(
-            decrypted_file_content,
+            io.BytesIO(decrypted_file_content),
             as_attachment=True,
             download_name=f'decrypted_file{original_extension}'
         )
+
     except Exception as e:
         flash(f"Error during decryption: {str(e)}", "error")
         return redirect(url_for('users.decrypt'))
+
 
 
 #==================================================================================================================
